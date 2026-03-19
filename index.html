@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多模态纹样识别与跨文化解读平台</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+:root {
+  --zhu:       #C0392B;
+  --dark-zhu:  #8B1A1A;
+  --deep-zhu:  #5C1E16;
+  --gold:      #C8973A;
+  --amber:     #D4A373;
+  --light-gold:#E8C97A;
+  --ink:       #1A1A2E;
+  --dark-ink:  #2D2722;
+  --smoke:     #5A5350;
+  --yun-white: #FAF7F2;
+  --paper:     #F4EFE6;
+  --silk:      #EDE5D8;
+  --celadon:   #7BA7A0;
+  --ru-kiln:   #A8C5C0;
+  --sky-blue:  #C5DDD8;
+  --border:    #D8CFBF;
+  --panel-bg:  #FFFFFF;
+  --shadow:    rgba(92,30,22,0.10);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  background: var(--paper);
+  color: var(--dark-ink);
+  line-height: 1.7;
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(200,151,58,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 85% 80%, rgba(92,30,22,0.05) 0%, transparent 50%);
+}
+h1, h2, h3, h4, .nav-brand { font-family: 'Noto Serif SC', serif; font-weight: 700; }
+h1 {
+  font-size: 34px;
+  margin-bottom: 24px;
+  color: var(--deep-zhu);
+  letter-spacing: 2px;
+  position: relative;
+  display: inline-block;
+}
+h1::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+}
+h2 {
+  font-size: 22px;
+  margin-bottom: 16px;
+  color: var(--deep-zhu);
+  padding-bottom: 10px;
+  position: relative;
+}
+h2::after {
+  content: '';
+  display: block;
+  margin-top: 8px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--zhu) 0%, var(--amber) 60%, transparent 100%);
+}
+h3 { font-size: 18px; margin-bottom: 12px; color: var(--dark-ink); letter-spacing: 0.5px; }
+.aux-text { font-size: 12px; color: var(--smoke); line-height: 1.6; }
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 48px;
+  background: var(--ink);
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(200,151,58,0.3);
+}
+.top-bar-left, .top-bar-right { display: flex; gap: 16px; align-items: center; }
+
+.lang-btn {
+  background: transparent;
+  color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(200,151,58,0.5);
+  padding: 3px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.lang-btn:focus, .lang-btn:hover { border-color: var(--gold); background: rgba(200,151,58,0.12); }
+.lang-btn option { background: var(--ink); color: #fff; }
+
+.tts-btn {
+  background: transparent;
+  color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(200,151,58,0.5);
+  padding: 3px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+.tts-btn:hover { border-color: var(--gold); background: rgba(200,151,58,0.12); color: var(--light-gold); }
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 48px;
+  height: 68px;
+  background: linear-gradient(105deg, #7A1F16 0%, #4A130D 55%, #2D0D08 100%);
+  color: #FFFFFF;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 3px 18px rgba(0,0,0,0.35);
+  border-bottom: 2px solid rgba(200,151,58,0.4);
+}
+nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 28px,
+      rgba(200,151,58,0.04) 28px,
+      rgba(200,151,58,0.04) 30px
+    );
+  pointer-events: none;
+}
+.nav-brand {
+  font-size: 22px;
+  letter-spacing: 4px;
+  color: var(--light-gold);
+  text-shadow: 0 0 20px rgba(232,201,122,0.4);
+  position: relative;
+}
+.nav-brand::before {
+  content: '❖';
+  font-size: 14px;
+  margin-right: 8px;
+  opacity: 0.7;
+}
+.nav-links { display: flex; gap: 4px; }
+.nav-links button {
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(255,255,255,0.8);
+  padding: 8px 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.25s;
+  position: relative;
+}
+.nav-links button::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--light-gold);
+  transition: width 0.25s;
+}
+.nav-links button:hover { color: #FFF; background: rgba(255,255,255,0.08); }
+.nav-links button:hover::after { width: 60%; }
+.nav-links button.active {
+  background: rgba(232,201,122,0.15);
+  color: var(--light-gold);
+  border: 1px solid rgba(232,201,122,0.35);
+}
+.nav-links button.active::after { width: 60%; }
+
+.container { max-width: 1400px; margin: 40px auto; padding: 0 56px; }
+.page { display: none; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  padding: 28px;
+  box-shadow: 0 2px 12px var(--shadow), 4px 4px 0 var(--silk);
+  position: relative;
+  margin-bottom: 24px;
+  border-radius: 2px;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--zhu) 0%, var(--amber) 50%, transparent 100%);
+  opacity: 0.6;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--zhu) 0%, var(--deep-zhu) 100%);
+  color: #FFFFFF;
+  border: none;
+  padding: 11px 26px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 3px 10px rgba(92,30,22,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #A0281E 0%, var(--dark-zhu) 100%);
+  box-shadow: 0 5px 16px rgba(92,30,22,0.45);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: var(--yun-white);
+  color: var(--deep-zhu);
+  border: 1px solid var(--zhu);
+  padding: 10px 22px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+.btn-secondary:hover {
+  background: var(--silk);
+  box-shadow: 0 2px 8px rgba(92,30,22,0.15);
+}
+
+input[type="text"], textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  background: var(--yun-white);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  margin-bottom: 16px;
+  color: var(--dark-ink);
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  border-radius: 2px;
+}
+input[type="text"]:focus, textarea:focus {
+  outline: none;
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(200,151,58,0.12);
+}
+
+.data-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+.data-table th, .data-table td { border: 1px solid var(--border); padding: 13px 16px; text-align: left; vertical-align: top; }
+.data-table th {
+  background: linear-gradient(135deg, #F5ECD8 0%, #EDE0C8 100%);
+  font-weight: 600;
+  color: var(--deep-zhu);
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+.data-table tr:hover td { background: rgba(212,163,115,0.06); }
+
+.tab-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+  gap: 0;
+  background: var(--yun-white);
+  padding: 0 8px;
+}
+.tab-btn {
+  padding: 11px 22px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  color: var(--smoke);
+  transition: all 0.2s;
+  position: relative;
+  letter-spacing: 0.5px;
+}
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0; right: 0; height: 3px; background: transparent; transition: background 0.2s;
+}
+.tab-btn:hover { color: var(--zhu); }
+.tab-btn.active { color: var(--deep-zhu); }
+.tab-btn.active::after { background: linear-gradient(90deg, var(--zhu), var(--amber)); }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.upload-area-box {
+  border: 2px dashed var(--border);
+  height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--yun-white) 0%, var(--silk) 100%);
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.25s, background 0.25s;
+  border-radius: 2px;
+}
+.upload-area-box:hover {
+  border-color: var(--amber);
+  background: linear-gradient(135deg, #FAF7F2 0%, #F0E6D3 100%);
+}
+.upload-area-box i { color: var(--zhu); margin-bottom: 16px; opacity: 0.8; }
+.upload-area-box span { font-weight: 600; color: var(--smoke); letter-spacing: 0.5px; }
+
+.pattern-tag {
+  background: var(--yun-white);
+  border: 1px solid var(--border);
+  color: var(--smoke);
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.25s;
+  border-radius: 4px !important;
+  font-weight: 500;
+}
+.pattern-tag:hover {
+  background: var(--amber);
+  color: #FFF;
+  border-color: var(--amber);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(212,163,115,0.3);
+}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: var(--silk); border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--amber); }
+
+.card-top-section { display: flex; justify-content: center; margin-bottom: 32px; }
+.card-main-img {
+  border: 1px solid var(--border);
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 420px;
+  max-width: 100%;
+  height: 320px;
+  flex: none;
+  box-shadow: 0 8px 32px var(--shadow), 6px 6px 0 var(--silk);
+}
+.card-main-img::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(200,151,58,0.25);
+  pointer-events: none;
+  z-index: 6;
+}
+
+.star-btn {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: rgba(255,255,255,0.9);
+  color: #DED6CC;
+  border: 1px solid rgba(222,214,204,0.8);
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 18px; z-index: 10;
+  transition: all 0.25s;
+  backdrop-filter: blur(4px);
+}
+.star-btn:hover { color: var(--amber); border-color: var(--amber); background: rgba(255,255,255,0.95); }
+.star-btn.active { color: var(--gold); border-color: var(--gold); background: rgba(255,255,255,0.95); }
+
+.chart-container { width: 100%; height: 350px; }
+.color-swatch-large {
+  display: inline-flex;
+  flex-direction: column;
+  width: 96px;
+  margin-right: 12px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.color-swatch-large:hover { transform: translateY(-5px); box-shadow: 0 8px 20px var(--shadow); }
+.color-swatch-large .color-box { height: 60px; width: 100%; }
+.color-swatch-large .color-info {
+  padding: 7px 6px;
+  font-size: 11px;
+  background: var(--yun-white);
+  text-align: center;
+  color: var(--smoke);
+  letter-spacing: 0.2px;
+}
+.heatmap-bar {
+  width: 100%;
+  height: 28px;
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  background: linear-gradient(90deg, #9B2E24 0%, #D4A373 50%, #2B3A42 100%);
+  border-radius: 2px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.visual-layer {
+  width: 100%;
+  height: 400px;
+  background: var(--yun-white);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+}
+.line-art-element { position: absolute; transition: all 0.3s; cursor: pointer; }
+.line-art-element:hover { filter: drop-shadow(0 0 10px rgba(200,151,58,0.7)); transform: scale(1.02); }
+
+.story-block {
+  margin-bottom: 22px;
+  border-left: 3px solid var(--amber);
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(212,163,115,0.06) 0%, transparent 100%);
+  position: relative;
+}
+.story-block::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -3px; bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, var(--zhu), var(--amber));
+}
+.story-block h4 {
+  color: var(--deep-zhu);
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.story-block h4 i { color: var(--amber); }
+.story-block p { text-align: justify; line-height: 1.9; color: var(--dark-ink); font-size: 14px; }
+
+.evo-display {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+  margin-bottom: 40px;
+  align-items: center;
+}
+.evo-img-box {
+  background: var(--silk);
+  border: 1px solid var(--border);
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+}
+.evo-img-box::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(200,151,58,0.2);
+  pointer-events: none;
+}
+.evo-info h3 { margin-bottom: 12px; color: var(--zhu); font-size: 22px; letter-spacing: 1px; }
+.evo-info p { text-align: justify; line-height: 1.9; color: var(--dark-ink); font-size: 14px; }
+
+.timeline-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 40px 20px 40px;
+  padding-top: 8px;
+}
+.timeline-line {
+  position: absolute;
+  top: 20px; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border) 10%, var(--border) 90%, transparent);
+  z-index: 1;
+}
+.timeline-dot-wrapper {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  width: 80px;
+  transition: transform 0.2s;
+}
+.timeline-dot-wrapper:hover { transform: translateY(-2px); }
+.timeline-dot {
+  width: 16px; height: 16px;
+  background: var(--yun-white);
+  border: 2px solid var(--border);
+  transform: rotate(45deg);
+  transition: all 0.3s;
+  margin-top: 3px;
+}
+.timeline-dot.active {
+  background: var(--zhu);
+  border-color: var(--amber);
+  transform: rotate(45deg) scale(1.25);
+  box-shadow: 0 0 0 4px rgba(200,151,58,0.2);
+}
+.timeline-label {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--smoke);
+  font-weight: 600;
+  text-align: center;
+  font-family: 'Noto Serif SC', serif;
+}
+.timeline-dot-wrapper:hover .timeline-dot { border-color: var(--amber); }
+.timeline-dot-wrapper.active .timeline-label { color: var(--zhu); }
+
+.fa-trash-alt { color: var(--border); transition: color 0.2s; }
+.fa-trash-alt:hover { color: var(--zhu); }
+
+@media (max-width: 900px) {
+  .top-bar { padding: 6px 20px; }
+  .top-bar-left { display: none; }
+  nav { padding: 0 20px; height: 58px; position: relative; }
+  .nav-brand { font-size: 18px; letter-spacing: 2px; }
+  .nav-links { display:none; }
+  .container { padding: 0 20px; margin: 24px auto; }
+  .grid-2 { grid-template-columns: 1fr; gap: 20px; }
+  #page-home > div:first-child { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .card-main-img { width: 100%; max-width: 420px; height: 260px; }
+  .evo-display { grid-template-columns: 1fr; gap: 16px; }
+  .evo-img-box { height: 200px; }
+  .timeline-container { margin: 0 10px 20px 10px; overflow-x: auto; padding-bottom: 8px; }
+  .tab-nav { flex-wrap: wrap; padding: 0 4px; }
+  .tab-btn { padding: 9px 14px; font-size: 13px; }
+  #chart-semantic { height: 420px !important; }
+}
+
+@media (max-width: 600px) {
+  .top-bar { padding: 5px 12px; }
+  .tts-btn span { display: none; }
+  nav { padding: 0 12px; height: 54px; }
+  .nav-brand { font-size: 16px; letter-spacing: 1px; }
+  .nav-brand::before { display: none; }
+  .container { padding: 0 12px; margin: 16px auto; }
+  h1 { font-size: 24px; letter-spacing: 1px; }
+  h2 { font-size: 18px; }
+  h3 { font-size: 15px; }
+  .panel { padding: 16px 14px; }
+  .card-main-img { height: 220px; max-width: 100%; }
+  .card-top-section { margin-bottom: 20px; }
+  .btn-primary, .btn-secondary { padding: 10px 16px; font-size: 12px; }
+  .upload-area-box { height: 200px; }
+  #tab-content-info-story .grid-2 { grid-template-columns: 1fr; }
+  .data-table th, .data-table td { padding: 10px 10px; font-size: 13px; }
+  .color-swatch-large { width: 80px; margin-right: 8px; }
+  .timeline-label { font-size: 11px; }
+  .timeline-dot-wrapper { width: 64px; }
+  .chart-container { height: 280px; }
+  #chart-semantic { height: 360px !important; }
+  .tab-btn { padding: 8px 10px; font-size: 12px; }
+  #tab-content-maplayer-color .grid-2 { grid-template-columns: 1fr; }
+  #page-home > div:first-child .btn-primary { width: 100%; justify-content: center; }
+  #page-trans > div:first-child { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="top-bar-left">
+        <span data-i18n="sys_date">平台设定日期: 2026-03-15</span>
+    </div>
+    <div class="top-bar-right">
+        <select id="lang-select" class="lang-btn" onchange="changeLanguage()">
+            <option value="zh">中文 (简体)</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="ja">日本語</option>
+        </select>
+        <button class="tts-btn" onclick="toggleTTS()">
+            <i id="tts-icon" class="fas fa-volume-up"></i> <span data-i18n="tts_btn" id="tts-text">开启语音播报</span>
+        </button>
+    </div>
+</div>
+
+<nav>
+    <div class="nav-brand" data-i18n="nav_brand">纹谱</div>
+    <div class="nav-links" id="nav-links-menu">
+        <button onclick="switchMainPage('home')" id="nav-home" class="active"><i class="fas fa-home"></i> <span data-i18n="nav_home">首页</span></button>
+        <button onclick="switchMainPage('trans')" id="nav-trans"><i class="fas fa-project-diagram"></i> <span data-i18n="nav_trans">纹样转译</span></button>
+        <button onclick="switchMainPage('collect')" id="nav-collect"><i class="fas fa-bookmark"></i> <span data-i18n="nav_collect">我的收藏</span></button>
+        <button onclick="switchMainPage('help')" id="nav-help"><i class="fas fa-question-circle"></i> <span data-i18n="nav_help">帮助中心</span></button>
+    </div>
+</nav>
+
+<div class="container">
+
+    <div id="page-home" class="page" style="display: block;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h1 data-i18n="home_title">多模态纹样符号转译</h1>
+        </div>
+
+        <div class="grid-2">
+            <div class="panel" style="display: flex; flex-direction: column;">
+                <h2 style="margin-bottom: 20px;"><i class="fas fa-tags"></i> 传统纹样图谱库</h2>
+                <div style="flex-grow: 1; height: 430px; overflow-y: auto; padding-right: 10px;" class="custom-scrollbar">
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
+                            <i class="fas fa-dragon"></i> 动物神兽纹
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button class="pattern-tag" onclick="quickAnalyze('云龙纹')">云龙纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('夔龙纹')">夔龙纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('饕餮纹')">饕餮纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('凤鸟纹')">凤鸟纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('蟠螭纹')">蟠螭纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('麒麟纹')">麒麟纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('狮纹')">狮纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('仙鹤纹')">仙鹤纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('蝙蝠纹')">蝙蝠纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('蝴蝶纹')">蝴蝶纹</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
+                            <i class="fas fa-leaf"></i> 祥瑞植物纹
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button class="pattern-tag" onclick="quickAnalyze('宝相花纹')">宝相花纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('缠枝莲纹')">缠枝莲纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('卷草纹')">卷草纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('牡丹纹')">牡丹纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('忍冬纹')">忍冬纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('柿蒂纹')">柿蒂纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('团花纹')">团花纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('折枝纹')">折枝纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('梅花纹')">梅花纹</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
+                            <i class="fas fa-shapes"></i> 骨架几何纹
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button class="pattern-tag" onclick="quickAnalyze('冰裂纹')">冰裂纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('八达晕锦纹')">八达晕</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('回纹')">回纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('万字纹')">万字纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('龟背纹')">龟背纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('菱格纹')">菱格纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('连珠纹')">连珠纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('曲折纹')">曲折纹</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
+                            <i class="fas fa-cloud-moon"></i> 天文自然纹
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button class="pattern-tag" onclick="quickAnalyze('海水江崖纹')">海水江崖</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('云雷纹')">云雷纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('如意云纹')">如意云纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('火焰纹')">火纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('水波纹')">水波纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('星象纹')">星象纹</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
+                            <i class="fas fa-gem"></i> 器物与吉祥符号
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button class="pattern-tag" onclick="quickAnalyze('八宝纹')">八宝纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('暗八仙纹')">暗八仙纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('寿字纹')">寿字纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('喜字纹')">喜字纹</button>
+                            <button class="pattern-tag" onclick="quickAnalyze('方胜纹')">方胜纹</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="display: flex; flex-direction: column;">
+                <h2 style="margin-bottom: 20px;"><i class="fas fa-bolt"></i> 核心转译工具</h2>
+                <div class="tab-nav" style="border-bottom: none; margin-bottom: 0;">
+                    <button class="tab-btn active" id="tab-btn-home-img" onclick="switchHomeTab('img')" data-i18n="trans_img_in">图像输入</button>
+                    <button class="tab-btn" id="tab-btn-home-txt" onclick="switchHomeTab('txt')" data-i18n="trans_txt_in">文本描述</button>
+                </div>
+
+                <div class="panel" style="margin-top: 0; border-top-left-radius: 0; flex-grow: 1; display: flex; flex-direction: column;">
+                    <div id="tab-content-home-img" class="tab-content active" style="flex-grow: 1;">
+                        <div id="home-upload-area" class="upload-area-box">
+                            <i class="fas fa-cloud-upload-alt fa-3x" style="margin-bottom: 16px;"></i>
+                            <span style="font-weight: 600;" data-i18n="trans_img_hint">点击区域调用设备相册</span>
+                        </div>
+                    </div>
+
+                    <div id="tab-content-home-txt" class="tab-content" style="flex-grow: 1;">
+                        <textarea id="home-text-input-area" rows="10" data-i18n="trans_txt_hint" placeholder="请详细描述视觉特征，例如：中心呈圆形放射状，像一朵莲花..."></textarea>
+                    </div>
+
+                    <div style="text-align: right; margin-top: auto; border-top: 1px solid var(--border); padding-top: 16px; display: flex; align-items: center; justify-content: flex-end; gap: 16px;">
+                        <span id="home-res-status" style="font-weight: 600; color: var(--smoke); font-size: 13px;" data-i18n="trans_status">等待数据输入</span>
+                        <button class="btn-primary" id="home-trigger-upload-btn"><i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-trans" class="page">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h1 style="margin-bottom: 0;" data-i18n="trans_title">多模态纹样转译</h1>
+            <div id="trans-actions" style="display: none;">
+                <button class="btn-secondary" onclick="resetTranslation()"><i class="fas fa-redo"></i> <span data-i18n="trans_reset">重新输入转译</span></button>
+            </div>
+        </div>
+
+        <div id="trans-upload-section" style="display: none;">
+            <div class="panel" style="padding: 0; border: none; box-shadow: none;">
+                <div class="tab-nav" style="border-bottom: none; margin-bottom: 0;">
+                    <button class="tab-btn active" id="tab-btn-input-img" onclick="switchTab('input', 'img')" data-i18n="trans_img_in">图像输入</button>
+                    <button class="tab-btn" id="tab-btn-input-txt" onclick="switchTab('input', 'txt')" data-i18n="trans_txt_in">文本描述</button>
+                </div>
+                <div class="panel" style="margin-top: 0; border-top-left-radius: 0;">
+                    <div id="tab-content-input-img" class="tab-content active">
+                        <div id="upload-area" class="upload-area-box">
+                            <i class="fas fa-cloud-upload-alt fa-3x" style="margin-bottom: 16px;"></i>
+                            <span style="font-weight: 600;" data-i18n="trans_img_hint">点击区域调用设备相册</span>
+                        </div>
+                    </div>
+                    <div id="tab-content-input-txt" class="tab-content">
+                        <textarea id="text-input-area" rows="10" data-i18n="trans_txt_hint" placeholder="请详细描述视觉特征，例如：中心呈圆形放射状，像一朵莲花..."></textarea>
+                    </div>
+                    <div style="text-align: right; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; display: flex; align-items: center; justify-content: flex-end; gap: 16px;">
+                        <span id="res-status" data-i18n="trans_status">等待数据输入</span>
+                        <button class="btn-primary" id="trigger-upload-btn"><i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="trans-result-section" style="display: none;">
+            <div id="text-result-nav" style="display: none; background: linear-gradient(135deg, #FAF7F2, #F4EFE6); border: 1px solid var(--border); padding: 16px; margin-bottom: 24px; text-align: center; border-radius: 4px;">
+                <p style="font-size: 14px; color: var(--deep-zhu); font-weight: 600; margin-bottom: 12px;"><i class="fas fa-lightbulb"></i> 基于您的文本描述，大模型为您推理出以下几种潜在纹样：</p>
+                <div id="text-result-buttons" style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;"></div>
+            </div>
+
+            <div class="tab-nav">
+                <button class="tab-btn active" id="tab-btn-trans-card" onclick="switchTab('trans', 'card')" data-i18n="tab_card">纹样卡片</button>
+                <button class="tab-btn" id="tab-btn-trans-map" onclick="switchTab('trans', 'map')" data-i18n="tab_map">纹样图谱</button>
+            </div>
+
+            <div id="tab-content-trans-card" class="tab-content active">
+                <div class="card-top-section">
+                    <div class="card-main-img" id="card-main-img-container">
+                        <button class="star-btn" id="fav-btn" onclick="toggleCollection()"><i class="fas fa-star"></i></button>
+                        <img id="display-main-img" src="" style="display:none; max-width:100%; max-height:100%; object-fit:contain; z-index: 5;">
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="tab-nav">
+                        <button class="tab-btn active" onclick="switchTab('info', 'basic')" id="tab-btn-info-basic" data-i18n="tab_info_b">基本纹样信息</button>
+                        <button class="tab-btn" onclick="switchTab('info', 'story')" id="tab-btn-info-story" data-i18n="tab_info_s">纹样故事</button>
+                    </div>
+
+                    <div id="tab-content-info-basic" class="tab-content active">
+                        <table class="data-table">
+                            <tr><th width="20%" data-i18n="th_name">纹样名称</th><td width="30%" id="val-name"></td><th width="20%" data-i18n="th_era">年代范围</th><td width="30%" id="val-era"></td></tr>
+                            <tr><th data-i18n="th_color">色彩构成</th><td colspan="3"><div id="val-color"></div></td></tr>
+                        </table>
+                    </div>
+
+                    <div id="tab-content-info-story" class="tab-content">
+                        <div class="grid-2">
+                            <div>
+                                <div class="story-block"><h4 data-i18n="sh_mean"><i class="fas fa-leaf"></i> 文化寓意</h4><p id="story-meaning"></p></div>
+                                <div class="story-block"><h4 data-i18n="sh_hist"><i class="fas fa-book"></i> 历史典故</h4><p id="story-history"></p></div>
+                            </div>
+                            <div>
+                                <div class="story-block"><h4 data-i18n="sh_use"><i class="fas fa-chess-rook"></i> 使用场景</h4><p id="story-usage"></p></div>
+                                <div class="story-block"><h4 data-i18n="sh_cross"><i class="fas fa-globe"></i> 跨文化对照</h4><p id="story-cross"></p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-content-trans-map" class="tab-content">
+                <div class="panel" style="padding: 0; border: none; box-shadow: none;">
+                    <div class="tab-nav">
+                        <button class="tab-btn active" onclick="switchTab('maplayer', 'line')" id="tab-btn-maplayer-line" data-i18n="ml_line">线条结构层</button>
+                        <button class="tab-btn" onclick="switchTab('maplayer', 'color')" id="tab-btn-maplayer-color" data-i18n="ml_color">色彩构成层</button>
+                        <button class="tab-btn" onclick="switchTab('maplayer', 'evo')" id="tab-btn-maplayer-evo" data-i18n="ml_evo">纹样演变时间轴层</button>
+                        <button class="tab-btn" onclick="switchTab('maplayer', 'sem')" id="tab-btn-maplayer-sem" data-i18n="ml_sem">语义关联网络</button>
+                    </div>
+
+                    <div id="tab-content-maplayer-line" class="tab-content active panel">
+                        <h3 data-i18n="ml_line_t">矢量轮廓与纹理分层</h3>
+                        <p class="aux-text" style="margin-bottom: 16px;" data-i18n="ml_line_d">悬停高亮主纹、辅纹与底纹区域。</p>
+                        <div class="visual-layer" id="line-art-container"></div>
+                    </div>
+
+                    <div id="tab-content-maplayer-color" class="tab-content panel">
+                        <div id="color-real-content" class="grid-2">
+                            <div>
+                                <h3 data-i18n="ml_color_t1">动态配比饼图</h3>
+                                <div id="chart-color-pie" class="chart-container" style="height: 300px;"></div>
+                            </div>
+                            <div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <h3 data-i18n="ml_color_t2">色板特征提取 (点击查看详情)</h3>
+                                    <button class="btn-secondary" style="padding: 4px 12px;"><i class="fas fa-download"></i> <span data-i18n="ml_color_btn">导出方案</span></button>
+                                </div>
+                                <div id="palette-board" style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                                <h3 style="margin-top: 24px;" data-i18n="ml_color_t3">分布热力图示意</h3>
+                                <div class="heatmap-bar" id="color-heatmap"></div>
+                            </div>
+                        </div>
+                        <div id="color-placeholder-content" style="display:none; text-align:center; color:#7A6F66; padding: 60px 20px;">
+                            <i class="fas fa-palette fa-3x" style="margin-bottom:16px;"></i>
+                            <p>文本推理模式下暂无源图像可提取色彩，请参考上方网络搜索图像特征。</p>
+                        </div>
+                    </div>
+
+                    <div id="tab-content-maplayer-evo" class="tab-content panel">
+                        <h3 data-i18n="ml_evo_t">同一主题纹样历史演变轨迹</h3>
+                        <p class="aux-text" style="margin-bottom: 24px;" data-i18n="ml_evo_d">点击下方时间轴节点，查看不同历史时期的形态演变与代表性器物图像。</p>
+                        <div class="evo-display">
+                            <div class="evo-img-box" id="evo-img-display"></div>
+                            <div class="evo-info">
+                                <h3 id="evo-info-title"></h3>
+                                <p id="evo-info-desc"></p>
+                            </div>
+                        </div>
+                        <div class="timeline-container" id="evo-timeline">
+                            <div class="timeline-line"></div>
+                        </div>
+                    </div>
+
+                    <div id="tab-content-maplayer-sem" class="tab-content panel">
+                        <h3 data-i18n="ml_sem_t">跨文化语义力导向关联图</h3>
+                        <p class="aux-text" style="margin-bottom: 16px;" data-i18n="ml_sem_d">节点大小表示关联强度，连线展示文化标签发散逻辑。</p>
+                        <div id="chart-semantic" class="chart-container" style="height: 600px; background: var(--yun-white); border: 1px solid var(--border);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-collect" class="page">
+        <h1 data-i18n="nav_collect">我的收藏</h1>
+        <div class="panel">
+            <table class="data-table" id="collection-table">
+                <tr><th width="25%" data-i18n="col_time">收藏时间</th><th data-i18n="col_name">纹样名称</th><th width="10%" data-i18n="col_op">操作</th></tr>
+                <tr id="empty-collect-msg"><td colspan="3" style="text-align: center; color: var(--smoke); padding: 32px; font-family: 'Noto Serif SC', serif;"><i class="fas fa-star" style="color: var(--border); font-size: 24px; display: block; margin-bottom: 12px;"></i><span data-i18n="col_empty">暂无收藏记录，请前往纹样卡片页面点击星标收藏。</span></td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-help" class="page">
+        <h1 data-i18n="nav_help">帮助中心</h1>
+        <div class="panel">
+            <h2 data-i18n="help_t">常见问题</h2>
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: linear-gradient(135deg, #FAF7F2, #F4EFE6); border-left: 3px solid var(--amber);">
+                    <i class="fas fa-images" style="color: var(--amber); margin-top: 2px; width: 16px;"></i>
+                    <p data-i18n="help_1">1. 上传图片后，系统将自动进行图像解析与结构提取。</p>
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: linear-gradient(135deg, #FAF7F2, #F4EFE6); border-left: 3px solid var(--amber);">
+                    <i class="fas fa-adjust" style="color: var(--amber); margin-top: 2px; width: 16px;"></i>
+                    <p data-i18n="help_2">2. 转译结果的准确度受图片光线与清晰度影响。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== 后端 API 地址配置 =====
+// 本地开发时使用 http://127.0.0.1:8000
+// 部署后请将此处替换为您的云服务器地址，例如 https://your-server.com
+const API_BASE = 'http://127.0.0.1:8000';
+
+const dict = {
+    zh: {
+        sys_date: "平台设定日期: 2026-03-15", tts_btn: "开启语音播报", nav_brand: "纹谱",
+        nav_home: "首页", nav_trans: "纹样转译", nav_collect: "我的收藏", nav_help: "帮助中心",
+        home_title: "多模态纹样符号转译", home_btn: "快捷特征解析",
+        trans_title: "多模态纹样转译", trans_reset: "重新输入转译", trans_img_in: "图像输入",
+        trans_img_hint: "点击区域调用设备相册", trans_txt_in: "文本描述", trans_txt_hint: "请详细描述视觉特征，例如：中心呈圆形放射状，像一朵莲花...",
+        trans_status: "等待数据输入", trans_submit: "提交解析", tab_card: "纹样卡片", tab_map: "纹样图谱",
+        tab_info_b: "基本纹样信息", tab_info_s: "纹样故事",
+        th_name: "纹样名称", th_era: "年代范围", th_color: "色彩构成",
+        sh_mean: "文化寓意", sh_hist: "历史典故", sh_use: "使用场景", sh_cross: "跨文化对照",
+        ml_line: "线条结构层", ml_color: "色彩构成层", ml_evo: "纹样演变时间轴层", ml_sem: "语义关联网络",
+        ml_line_t: "矢量轮廓与纹理分层", ml_line_d: "悬停高亮主纹、辅纹与底纹区域。",
+        ml_color_t1: "动态配比饼图", ml_color_t2: "色板特征提取 (点击查看详情)", ml_color_btn: "导出方案", ml_color_t3: "分布热力图示意",
+        ml_evo_t: "同一主题纹样历史演变轨迹", ml_evo_d: "点击下方时间轴节点，查看不同历史时期的形态演变与代表性器物图像。",
+        ml_sem_t: "跨文化语义力导向关联图", ml_sem_d: "节点大小表示关联强度，连线展示文化标签发散逻辑。",
+        col_time: "收藏时间", col_name: "纹样名称", col_op: "操作", col_empty: "暂无收藏记录，请前往纹样卡片页面点击星标收藏。",
+        help_t: "常见问题", help_1: "1. 上传图片后，系统将自动进行图像解析与结构提取。", help_2: "2. 转译结果的准确度受图片光线与清晰度影响。"
+    },
+    en: {
+        sys_date: "System Date: 2026-03-15", tts_btn: "Enable Voice", nav_brand: "Wenyi V1.0",
+        nav_home: "Home", nav_trans: "Translate", nav_collect: "Collections", nav_help: "Help",
+        home_title: "Multimodal Symbol Translation", home_btn: "Quick Translation",
+        trans_title: "Multimodal Translation", trans_reset: "Reset Translation", trans_img_in: "Image Input",
+        trans_img_hint: "Click to open device album", trans_txt_in: "Text Input", trans_txt_hint: "Describe visual features...",
+        trans_status: "Awaiting Input", trans_submit: "Submit Analysis", tab_card: "Pattern Card", tab_map: "Pattern Map",
+        tab_info_b: "Basic Information", tab_info_s: "Pattern Story",
+        th_name: "Name", th_era: "Era", th_color: "Colors",
+        sh_mean: "Meaning", sh_hist: "History", sh_use: "Usage", sh_cross: "Cross-Cultural",
+        ml_line: "Line Structure", ml_color: "Color Composition", ml_evo: "Evolution Timeline", ml_sem: "Semantic Network",
+        ml_line_t: "Vector Contour Layers", ml_line_d: "Hover to highlight main and sub-textures.",
+        ml_color_t1: "Dynamic Ratio Chart", ml_color_t2: "Palette Extraction", ml_color_btn: "Export", ml_color_t3: "Heatmap Distribution",
+        ml_evo_t: "Historical Evolution Trajectory", ml_evo_d: "Click timeline nodes below to view morphological changes across eras.",
+        ml_sem_t: "Force-Directed Semantic Graph", ml_sem_d: "Node size indicates correlation strength.",
+        col_time: "Time", col_name: "Name", col_op: "Action", col_empty: "No collections yet. Click the star on a pattern card.",
+        help_t: "FAQ", help_1: "1. Auto-parsing upon upload.", help_2: "2. Accuracy depends on image clarity."
+    }
+};
+
+let currentLang = 'zh';
+let currentImageFile = null;
+let currentResult = null;
+let textResultArray = [];
+let isTextMode = false;
+let collections = {};
+
+function changeLanguage() {
+    currentLang = document.getElementById('lang-select').value;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[currentLang] && dict[currentLang][key]) {
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = dict[currentLang][key];
+            } else {
+                el.innerText = dict[currentLang][key];
+            }
+        }
+    });
+    if (currentResult) updateDynamicContentLanguage();
+}
+
+function updateDynamicContentLanguage() {
+    if (!currentResult || !currentResult.dynamic_details) return;
+    let dDetails = currentResult.dynamic_details;
+    let localizedDetails = dDetails[currentLang] || dDetails['en'] || dDetails['zh'] || {};
+
+    let finalName = localizedDetails.name || currentResult.pattern_type;
+    document.getElementById('val-name').innerText = finalName;
+
+    let evoData = dDetails.evolution || [];
+    let finalEra = "--";
+    if(evoData && evoData.length > 0) {
+        let eraStart = evoData[0].era[currentLang] || evoData[0].era['en'] || evoData[0].era['zh'] || "";
+        let eraEnd = evoData[evoData.length-1].era[currentLang] || evoData[evoData.length-1].era['en'] || evoData[evoData.length-1].era['zh'] || "";
+        finalEra = eraStart === eraEnd ? eraStart : (currentLang === 'zh' ? `${eraStart} 至 ${eraEnd}` : `${eraStart} to ${eraEnd}`);
+    }
+    if(localizedDetails.era) finalEra = localizedDetails.era;
+
+    document.getElementById('val-era').innerText = finalEra;
+    document.getElementById('story-meaning').innerText = localizedDetails.meaning || "--";
+    document.getElementById('story-history').innerText = localizedDetails.history || "--";
+    document.getElementById('story-usage').innerText = localizedDetails.usage || "--";
+    document.getElementById('story-cross').innerText = localizedDetails.cross || "--";
+
+    renderEvolutionTimeline(dDetails, finalName);
+}
+
+let isTTSActive = false;
+function toggleTTS() {
+    const icon = document.getElementById('tts-icon');
+    const textSpan = document.getElementById('tts-text');
+
+    if (!isTTSActive) {
+        isTTSActive = true;
+        icon.className = 'fas fa-stop-circle';
+        textSpan.innerText = currentLang === 'zh' ? '停止播报' : 'Stop';
+        let text = document.querySelector('.page[style*="display: block"]').innerText;
+        const utterance = new SpeechSynthesisUtterance(text.replace(/\n+/g, ' '));
+        utterance.lang = currentLang === 'en' ? 'en-US' : 'zh-CN';
+        utterance.onend = () => {
+            isTTSActive = false;
+            icon.className = 'fas fa-volume-up';
+            textSpan.innerText = dict[currentLang]['tts_btn'];
+        };
+        window.speechSynthesis.speak(utterance);
+    } else {
+        isTTSActive = false;
+        icon.className = 'fas fa-volume-up';
+        textSpan.innerText = dict[currentLang]['tts_btn'];
+        window.speechSynthesis.cancel();
+    }
+}
+
+function switchMainPage(pageId) {
+    document.querySelectorAll('.nav-links button').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('nav-' + pageId).classList.add('active');
+    document.querySelectorAll('.page').forEach(page => page.style.display = 'none');
+    document.getElementById('page-' + pageId).style.display = 'block';
+    if(isTTSActive) { toggleTTS(); toggleTTS(); }
+
+    if(pageId === 'trans' && !currentResult) {
+        document.getElementById('trans-upload-section').style.display = 'block';
+        document.getElementById('trans-result-section').style.display = 'none';
+        document.getElementById('trans-actions').style.display = 'none';
+    }
+}
+
+function switchTab(group, tabId) {
+    document.querySelectorAll(`[id^="tab-btn-${group}"]`).forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll(`[id^="tab-content-${group}"]`).forEach(content => content.classList.remove('active'));
+
+    const targetBtn = document.getElementById(`tab-btn-${group}-${tabId}`);
+    const targetContent = document.getElementById(`tab-content-${group}-${tabId}`);
+    if (targetBtn) targetBtn.classList.add('active');
+    if (targetContent) targetContent.classList.add('active');
+
+    if (tabId === 'color' || tabId === 'sem') {
+        setTimeout(() => {
+            if(pieChart) pieChart.resize();
+            if(semChart) semChart.resize();
+        }, 150);
+    }
+}
+
+function switchHomeTab(tabId) {
+    document.getElementById('tab-btn-home-img').classList.remove('active');
+    document.getElementById('tab-btn-home-txt').classList.remove('active');
+    document.getElementById('tab-content-home-img').classList.remove('active');
+    document.getElementById('tab-content-home-txt').classList.remove('active');
+
+    document.getElementById(`tab-btn-home-${tabId}`).classList.add('active');
+    document.getElementById(`tab-content-home-${tabId}`).classList.add('active');
+}
+
+// 核心改动：左侧标签的专属方法，不切换页面，在原地等候加载，并隐藏上方导航栏。
+function quickAnalyze(patternName) {
+    const statusEl = document.getElementById('home-res-status');
+    const origText = statusEl.innerHTML;
+    // 强制原地显示加载中状态
+    statusEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span style="color: var(--zhu);">` + (currentLang === 'zh' ? `正在为您加载【${patternName}】...` : `Loading ${patternName}...`) + `</span>`;
+
+    // 传入 true 表示为 "ExactMatch"（精准匹配，无需显示3个按钮的导航栏）
+    processTextAnalysis(patternName, true).then(() => {
+        switchMainPage('trans');
+        statusEl.innerHTML = origText;
+    }).catch(err => {
+        statusEl.innerHTML = '<span style="color:red;">加载失败, 请重试</span>';
+        setTimeout(() => statusEl.innerHTML = origText, 3000);
+    });
+}
+
+const fileInput = document.createElement('input');
+fileInput.type = 'file';
+fileInput.accept = 'image/*';
+fileInput.style.display = 'none';
+document.body.appendChild(fileInput);
+
+document.getElementById('upload-area').addEventListener('click', () => fileInput.click());
+document.getElementById('home-upload-area').addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    currentImageFile = file;
+    const objectUrl = URL.createObjectURL(file);
+
+    const imgHtml = `<img src="${objectUrl}" style="max-width:100%; max-height:100%; object-fit:contain; z-index:2;">`;
+    document.getElementById('upload-area').innerHTML = imgHtml;
+    document.getElementById('home-upload-area').innerHTML = imgHtml;
+
+    document.getElementById('display-main-img').src = objectUrl;
+    document.getElementById('display-main-img').style.display = 'block';
+    document.getElementById('res-status').innerText = '文件已就绪';
+    document.getElementById('home-res-status').innerText = '文件已就绪';
+});
+
+// 右侧核心入口的提交逻辑（等待执行完毕后才进行跳转）
+document.getElementById('home-trigger-upload-btn').addEventListener('click', () => {
+    const isImg = document.getElementById('tab-content-home-img').classList.contains('active');
+    const btnHtml = document.getElementById('home-trigger-upload-btn');
+
+    if (isImg) {
+        if (!currentImageFile) {
+            alert(currentLang === 'zh' ? "请先点击虚线框选择一张图片！" : "Please select an image first!");
+            return;
+        }
+        btnHtml.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ` + (currentLang === 'zh' ? "处理中..." : "Processing...");
+        isTextMode = false;
+        document.getElementById('text-result-nav').style.display = 'none';
+
+        processAnalysis(currentImageFile).then(() => {
+            switchMainPage('trans');
+            btnHtml.innerHTML = `<i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span>`;
+        });
+    } else {
+        const textVal = document.getElementById('home-text-input-area').value.trim();
+        if (!textVal) {
+            alert(currentLang === 'zh' ? "请输入特征描述或直接点击左侧纹样标签！" : "Please enter text description!");
+            return;
+        }
+        btnHtml.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ` + (currentLang === 'zh' ? "推理中..." : "Inferring...");
+
+        processTextAnalysis(textVal, false).then(() => {
+            switchMainPage('trans');
+            btnHtml.innerHTML = `<i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span>`;
+        });
+    }
+});
+
+document.getElementById('trigger-upload-btn').addEventListener('click', () => {
+    const isImg = document.getElementById('tab-content-input-img').classList.contains('active');
+    const btnHtml = document.getElementById('trigger-upload-btn');
+
+    if (isImg) {
+        if (!currentImageFile) {
+            alert(currentLang === 'zh' ? "请先点击虚线框选择一张图片！" : "Please select an image first!");
+            return;
+        }
+        btnHtml.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ` + (currentLang === 'zh' ? "处理中..." : "Processing...");
+        isTextMode = false;
+        document.getElementById('text-result-nav').style.display = 'none';
+
+        processAnalysis(currentImageFile).then(() => {
+            btnHtml.innerHTML = `<i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span>`;
+        });
+    } else {
+        const textVal = document.getElementById('text-input-area').value.trim();
+        if (!textVal) {
+            alert(currentLang === 'zh' ? "请输入纹样特征描述！" : "Please enter text description!");
+            return;
+        }
+        btnHtml.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ` + (currentLang === 'zh' ? "推理中..." : "Inferring...");
+
+        processTextAnalysis(textVal, false).then(() => {
+            btnHtml.innerHTML = `<i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span>`;
+        });
+    }
+});
+
+async function processAnalysis(file) {
+    document.getElementById('res-status').innerText = currentLang === 'zh' ? '正在调用视觉大模型构建档案...' : 'Retrieving & Processing...';
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch(`${API_BASE}/api/analyze`, { method: 'POST', body: formData });
+        currentResult = await response.json();
+
+        updateDynamicContentLanguage();
+
+        let colorText = "";
+        currentResult.colors.forEach((c, i) => { colorText += `<span style="display:inline-block;width:12px;height:12px;background:${c};margin:0 4px;border:1px solid #000;"></span>${currentResult.color_ratios[i]}% ` });
+        document.getElementById('val-color').innerHTML = colorText;
+
+        document.getElementById('line-art-container').innerHTML = `<img src="data:image/jpeg;base64,${currentResult.edge_base64}" class="line-art-element" style="max-width:100%; max-height:100%; object-fit:contain; z-index:5;">`;
+
+        document.getElementById('color-real-content').style.display = '';
+        document.getElementById('color-placeholder-content').style.display = 'none';
+
+        const palette = document.getElementById('palette-board');
+        palette.innerHTML = '';
+        let grad = [];
+        currentResult.colors.forEach((hex, idx) => {
+            palette.innerHTML += `<div class="color-swatch-large"><div class="color-box" style="background:${hex}"></div><div class="color-info">${hex}<br>${currentResult.color_ratios[idx]}%</div></div>`;
+            grad.push(`${hex} ${idx*25}%`);
+        });
+        document.getElementById('color-heatmap').style.background = `linear-gradient(90deg, ${grad.join(', ')})`;
+
+        document.getElementById('trans-upload-section').style.display = 'none';
+        document.getElementById('trans-result-section').style.display = 'block';
+        document.getElementById('trans-actions').style.display = 'block';
+
+        switchTab('info', 'basic');
+        syncFavBtn();
+        switchTab('trans', 'card');
+        setTimeout(renderCharts, 150);
+        setTimeout(renderSemantic, 150);
+    } catch (err) {
+        document.getElementById('res-status').innerText = 'API连接异常';
+        throw err;
+    }
+}
+
+// 支持精准匹配（隐藏多选项）与推测匹配的文本接口
+async function processTextAnalysis(text, isExactMatch = false) {
+    document.getElementById('res-status').innerText = currentLang === 'zh' ? '大模型正在推理可能的纹样...' : 'Inferring...';
+    const formData = new FormData();
+    formData.append('text', text);
+
+    try {
+        const response = await fetch(`${API_BASE}/api/analyze_text`, { method: 'POST', body: formData });
+        textResultArray = await response.json();
+
+        isTextMode = true;
+        document.getElementById('trans-upload-section').style.display = 'none';
+        document.getElementById('trans-result-section').style.display = 'block';
+        document.getElementById('trans-actions').style.display = 'block';
+
+        if (isExactMatch) {
+            document.getElementById('text-result-nav').style.display = 'none';
+        } else {
+            document.getElementById('text-result-nav').style.display = 'block';
+            const container = document.getElementById('text-result-buttons');
+            container.innerHTML = '';
+            textResultArray.forEach((res, idx) => {
+                const btn = document.createElement('button');
+                btn.className = idx === 0 ? 'btn-primary' : 'btn-secondary';
+                btn.innerText = res.pattern_type;
+                btn.onclick = () => switchTextResult(idx, btn, false);
+                container.appendChild(btn);
+            });
+        }
+
+        switchTextResult(0, isExactMatch ? null : document.getElementById('text-result-buttons').firstChild, isExactMatch);
+    } catch (err) {
+        document.getElementById('res-status').innerText = 'API连接异常';
+        throw err;
+    }
+}
+
+function switchTextResult(idx, btnElement, hideNav=false) {
+    if(btnElement && !hideNav) {
+        document.querySelectorAll('#text-result-buttons button').forEach(b => b.className = 'btn-secondary');
+        btnElement.className = 'btn-primary';
+    }
+    currentResult = textResultArray[idx];
+
+    let searchKeyword = currentResult.pattern_type + " 古典纹样 文物";
+    let imgUrl = `https://tse2.mm.bing.net/th?q=${encodeURIComponent(searchKeyword)}&w=600&h=450&c=7&rs=1&p=0`;
+    document.getElementById('display-main-img').src = imgUrl;
+    document.getElementById('display-main-img').style.display = 'block';
+
+    updateDynamicContentLanguage();
+
+    document.getElementById('val-color').innerHTML = '<span style="color:#7A6F66; font-weight: 500;">文本模式下暂无色彩提取</span>';
+    document.getElementById('line-art-container').innerHTML = `<div style="text-align:center; color:#7A6F66; padding: 60px 20px;"><i class="fas fa-magic fa-3x" style="margin-bottom:16px;"></i><p>文本推理模式下暂无源图像可提取结构，请参考上方网络搜索图像与色彩特征。</p></div>`;
+
+    document.getElementById('color-real-content').style.display = 'none';
+    document.getElementById('color-placeholder-content').style.display = 'block';
+
+    switchTab('info', 'basic');
+    syncFavBtn();
+    switchTab('trans', 'card');
+    setTimeout(renderCharts, 150);
+    setTimeout(renderSemantic, 150);
+}
+
+function resetTranslation() {
+    currentImageFile = null;
+    currentResult = null;
+    const uploadHTML = '<i class="fas fa-cloud-upload-alt fa-3x" style="margin-bottom: 16px;"></i><span style="font-weight: 600;" data-i18n="trans_img_hint">点击区域调用设备相册</span>';
+
+    document.getElementById('upload-area').innerHTML = uploadHTML;
+    document.getElementById('home-upload-area').innerHTML = uploadHTML;
+    document.getElementById('text-input-area').value = '';
+    document.getElementById('home-text-input-area').value = '';
+
+    document.getElementById('res-status').innerText = dict[currentLang]["trans_status"];
+    document.getElementById('home-res-status').innerText = dict[currentLang]["trans_status"];
+
+    document.getElementById('trans-upload-section').style.display = 'block';
+    document.getElementById('trans-result-section').style.display = 'none';
+    document.getElementById('trans-actions').style.display = 'none';
+    document.getElementById('text-result-nav').style.display = 'none';
+}
+
+function syncFavBtn() {
+    const btn = document.getElementById('fav-btn');
+    if(currentResult && collections[currentResult.img_id]) btn.classList.add('active');
+    else btn.classList.remove('active');
+}
+
+function toggleCollection() {
+    if(!currentResult) return;
+    const btn = document.getElementById('fav-btn');
+    btn.classList.toggle('active');
+
+    if(btn.classList.contains('active')) {
+        collections[currentResult.img_id] = { pName: currentResult.pattern_type, date: new Date().toLocaleDateString() };
+    } else {
+        delete collections[currentResult.img_id];
+    }
+    updateCollectionTable();
+}
+
+function updateCollectionTable() {
+    const table = document.getElementById('collection-table');
+    table.querySelectorAll('.col-row').forEach(r => r.remove());
+    const keys = Object.keys(collections);
+    if(keys.length === 0) {
+        document.getElementById('empty-collect-msg').style.display = 'table-row';
+    } else {
+        document.getElementById('empty-collect-msg').style.display = 'none';
+        keys.forEach(k => {
+            const tr = document.createElement('tr');
+            tr.className = 'col-row';
+            tr.innerHTML = `<td>${collections[k].date}</td><td>${collections[k].pName}</td><td><i class="fas fa-trash-alt" style="cursor:pointer;" onclick="deleteCollection('${k}')"></i></td>`;
+            table.appendChild(tr);
+        });
+    }
+}
+
+function deleteCollection(k) {
+    delete collections[k];
+    updateCollectionTable();
+    if(currentResult && currentResult.img_id === k) syncFavBtn();
+}
+
+let pieChart, semChart;
+
+function renderCharts() {
+    if(!currentResult || isTextMode) return;
+    if(!pieChart) pieChart = echarts.init(document.getElementById('chart-color-pie'));
+    pieChart.clear();
+    const data = currentResult.colors.map((c, i) => ({value: currentResult.color_ratios[i], name: c, itemStyle: {color: c}}));
+    pieChart.setOption({ series: [{ type: 'pie', radius: '70%', data: data }] });
+    pieChart.resize();
+}
+
+let currentEvoData = [];
+function renderEvolutionTimeline(dDetails, finalName) {
+    currentEvoData = dDetails.evolution || [];
+    if(currentEvoData.length === 0) return;
+
+    const timelineContainer = document.getElementById('evo-timeline');
+    timelineContainer.querySelectorAll('.timeline-dot-wrapper').forEach(d => d.remove());
+
+    currentEvoData.forEach((evo, index) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'timeline-dot-wrapper';
+        wrap.onclick = () => selectEvoNode(index, finalName);
+
+        const dot = document.createElement('div');
+        dot.className = 'timeline-dot';
+        dot.id = `evo-dot-${index}`;
+
+        const label = document.createElement('div');
+        label.className = 'timeline-label';
+        label.innerText = evo.era[currentLang] || evo.era['en'] || evo.era['zh'];
+
+        wrap.appendChild(dot);
+        wrap.appendChild(label);
+        timelineContainer.appendChild(wrap);
+    });
+
+    selectEvoNode(0, finalName);
+}
+
+function selectEvoNode(index, finalName) {
+    document.querySelectorAll('.timeline-dot').forEach(d => d.classList.remove('active'));
+    document.querySelectorAll('.timeline-dot-wrapper').forEach(w => w.classList.remove('active'));
+
+    const targetDot = document.getElementById(`evo-dot-${index}`);
+    if (targetDot) {
+        targetDot.classList.add('active');
+        targetDot.parentElement.classList.add('active');
+    }
+
+    const evo = currentEvoData[index];
+    const eraText = evo.era[currentLang] || evo.era['en'] || evo.era['zh'];
+    const descText = evo.desc[currentLang] || evo.desc['en'] || evo.desc['zh'];
+
+    document.getElementById('evo-info-title').innerText = `${eraText} · ${finalName}`;
+    document.getElementById('evo-info-desc').innerText = descText;
+
+    let searchKeyword = (evo.era['zh'] || eraText) + " " + finalName + " 文物";
+    let imgUrl = `https://tse2.mm.bing.net/th?q=${encodeURIComponent(searchKeyword)}&w=400&h=300&c=7&rs=1&p=0`;
+    document.getElementById('evo-img-display').innerHTML = `<img src="${imgUrl}" alt="${finalName} ${eraText}" style="width:100%; height:100%; object-fit:cover;">`;
+}
+
+function renderSemantic() {
+    if(!currentResult || !currentResult.dynamic_details) return;
+    if(!semChart) semChart = echarts.init(document.getElementById('chart-semantic'));
+    semChart.clear();
+
+    let dDetails = currentResult.dynamic_details;
+    let localizedDetails = dDetails[currentLang] || dDetails['en'] || dDetails['zh'] || {};
+    let localName = localizedDetails.name || currentResult.pattern_type;
+
+    let centerId = 'center_' + Date.now();
+    const nodes = [{
+        id: centerId,
+        name: localName,
+        symbolSize: 70,
+        itemStyle: {color: '#5C1E16'},
+        label: { show: true, fontSize: 16, color: '#FFFFFF', fontWeight: 'bold' }
+    }];
+    const links = [];
+
+    const catColors = ['#D4A373', '#C28F5B', '#E0B589', '#D9A066'];
+    const leafColor = '#F8F4ED';
+    const semantics = dDetails.semantics || {};
+    let catIndex = 0;
+
+    for (let cat in semantics) {
+        let catNodes = semantics[cat];
+        if (!catNodes || catNodes.length === 0) continue;
+
+        let displayCat = cat;
+        if (currentLang === 'en') {
+            const enCats = {"基本信息":"Basic Info", "工艺":"Crafts", "空间":"Space", "寓意":"Meaning", "相关纹样":"Related", "历史人物":"Figures", "文化典故":"Stories", "艺术作品":"Artworks"};
+            displayCat = enCats[cat] || cat;
+        }
+
+        let catNodeId = 'cat_' + catIndex;
+        nodes.push({
+            id: catNodeId,
+            name: displayCat,
+            symbolSize: 45,
+            itemStyle: {color: catColors[catIndex % catColors.length]},
+            label: { show: true, fontSize: 13, color: '#2D2722', fontWeight: 'bold' }
+        });
+        links.push({source: centerId, target: catNodeId, lineStyle: {width: 3, color: '#D4A373'}});
+
+        catNodes.forEach((leaf, leafIdx) => {
+            let leafId = 'leaf_' + catIndex + '_' + leafIdx;
+            nodes.push({
+                id: leafId,
+                name: leaf,
+                symbolSize: 30,
+                itemStyle: {color: leafColor, borderColor: '#DED6CC', borderWidth: 1},
+                label: { show: true, fontSize: 11, color: '#2D2722' }
+            });
+            links.push({source: catNodeId, target: leafId, lineStyle: {width: 1.5, type: 'dashed', color: '#DED6CC'}});
+        });
+        catIndex++;
+    }
+
+    semChart.setOption({
+        tooltip: { trigger: 'item', formatter: '{b}' },
+        series: [{
+            type: 'graph',
+            layout: 'force',
+            data: nodes,
+            links: links,
+            force: { repulsion: 300, edgeLength: [40, 90], gravity: 0.05 },
+            roam: true,
+            label: { show: true },
+            lineStyle: { curveness: 0.1 }
+        }]
+    });
+    semChart.resize();
+}
+</script>
+</body>
+</html>

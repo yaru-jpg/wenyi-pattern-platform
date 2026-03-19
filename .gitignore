@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.env
+venv/
+.venv/
+
+# 模型权重文件（体积大，不建议上传 GitHub）
+*.pth
+*.pt
+*.pkl
+
+# 数据集（体积大，不建议上传 GitHub）
+pattern_dataset/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 系统文件
+.DS_Store
+Thumbs.db
