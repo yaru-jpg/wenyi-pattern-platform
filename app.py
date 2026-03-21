@@ -15,6 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from sklearn.cluster import KMeans
 import dashscope
+from collections import OrderedDict
+import threading
 
 # ==========================================
 # 1. 阿里云大模型 API KEY (安全模式)
@@ -29,6 +31,29 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ==========================================
+# 图片代理 LRU 内存缓存（最多缓存200张，减少重复请求）
+# ==========================================
+_img_cache = OrderedDict()
+_img_cache_lock = threading.Lock()
+_IMG_CACHE_MAX = 200
+
+def _cache_get(key):
+    with _img_cache_lock:
+        if key in _img_cache:
+            _img_cache.move_to_end(key)
+            return _img_cache[key]
+    return None
+
+def _cache_set(key, value):
+    with _img_cache_lock:
+        if key in _img_cache:
+            _img_cache.move_to_end(key)
+        else:
+            if len(_img_cache) >= _IMG_CACHE_MAX:
+                _img_cache.popitem(last=False)
+        _img_cache[key] = value
 
 
 # ==========================================
@@ -57,25 +82,41 @@ async def health_check():
 # ==========================================
 @app.get("/api/image")
 async def proxy_image(q: str):
-    """代理搜索图片，避免浏览器跨域/防盗链问题"""
-    try:
-        search_url = f"https://tse2.mm.bing.net/th?q={urllib.parse.quote(q)}&w=600&h=450&c=7&rs=1&p=0"
-        req = urllib.request.Request(search_url, headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Referer': 'https://www.bing.com/'
-        })
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            data = resp.read()
-            content_type = resp.headers.get('Content-Type', 'image/jpeg')
-        return Response(content=data, media_type=content_type)
-    except Exception as e:
-        # 返回一个占位 SVG
-        svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450">
+    """代理搜索图片，避免浏览器跨域/防盗链问题（带内存缓存加速）"""
+    cache_key = q.strip().lower()
+    cached = _cache_get(cache_key)
+    if cached:
+        return Response(content=cached[0], media_type=cached[1],
+                        headers={"Cache-Control": "public, max-age=3600"})
+
+    # 尝试多个图片源，提高成功率
+    sources = [
+        f"https://tse2.mm.bing.net/th?q={urllib.parse.quote(q)}&w=600&h=450&c=7&rs=1&p=0",
+        f"https://tse1.mm.bing.net/th?q={urllib.parse.quote(q)}&w=400&h=300&c=7",
+        f"https://tse3.mm.bing.net/th?q={urllib.parse.quote(q)}&w=400&h=300",
+    ]
+    for url in sources:
+        try:
+            req = urllib.request.Request(url, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://www.bing.com/'
+            })
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                data = resp.read()
+                content_type = resp.headers.get('Content-Type', 'image/jpeg')
+            _cache_set(cache_key, (data, content_type))
+            return Response(content=data, media_type=content_type,
+                            headers={"Cache-Control": "public, max-age=3600"})
+        except Exception:
+            continue
+
+    # 所有源失败，返回占位 SVG
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450">
   <rect width="600" height="450" fill="#F4EFE6"/>
   <text x="300" y="200" text-anchor="middle" font-family="serif" font-size="18" fill="#5C1E16">{q}</text>
   <text x="300" y="240" text-anchor="middle" font-family="serif" font-size="13" fill="#9A8F85">图片加载中，请稍候</text>
 </svg>'''
-        return Response(content=svg.encode(), media_type="image/svg+xml")
+    return Response(content=svg.encode(), media_type="image/svg+xml")
 
 
 def robust_json_parse(raw_text):
@@ -198,23 +239,44 @@ def _make_fallback_result(pattern_name: str, err_msg: str = "") -> dict:
 
 
 @app.post("/api/analyze_text")
-async def analyze_text(text: str = Form(...)):
-    """文本推理接口（含重试 + 降级兜底）"""
-    # 精简版 prompt，降低模型输出 token 需求，提高成功率
-    prompt = (
-        f"你是中国古典纹样专家。根据描述\"{text}\"，推理1-2种最匹配的传统纹样。\n"
-        "【重要】只输出JSON数组，禁止Markdown和其他文字！\n"
-        "格式：\n"
-        '[{"pattern_name":"名称","details":{'
-        '"zh":{"name":"名称","era":"年代","meaning":"寓意","history":"典故","usage":"场景","cross":"跨文化"},'
-        '"en":{"name":"Name","era":"Era","meaning":"Meaning","history":"History","usage":"Usage","cross":"Cross"},'
-        '"semantics":{"基本信息":["年代"],"工艺":["工艺"],"寓意":["寓意"]},'
-        '"evolution":['
-        '{"era":{"zh":"起源朝代","en":"Origin"},"desc":{"zh":"特征","en":"Features"},"keyword":"key"},'
-        '{"era":{"zh":"发展朝代","en":"Development"},"desc":{"zh":"演变","en":"Changes"},"keyword":"key2"},'
-        '{"era":{"zh":"鼎盛朝代","en":"Peak"},"desc":{"zh":"成熟","en":"Mature"},"keyword":"key3"}'
-        ']}}]'
-    )
+async def analyze_text(text: str = Form(...), exact: str = Form(default="0")):
+    """文本推理接口（含重试 + 降级兜底）
+    exact="1" 表示精确查询（首页标签点击），返回1种；exact="0" 表示自由描述，推理2-3种。
+    """
+    is_exact = (exact == "1")
+
+    if is_exact:
+        # 精确模式：只需返回1种，prompt简洁
+        prompt = (
+            f"你是中国古典纹样专家。请详细介绍传统纹样「{text}」。\n"
+            "【重要】只输出JSON数组（含1个元素），禁止Markdown！\n"
+            "格式：\n"
+            '[{"pattern_name":"名称","details":{'
+            '"zh":{"name":"名称","era":"年代","meaning":"寓意","history":"典故","usage":"场景","cross":"跨文化"},'
+            '"en":{"name":"Name","era":"Era","meaning":"Meaning","history":"History","usage":"Usage","cross":"Cross"},'
+            '"semantics":{"基本信息":["年代"],"工艺":["工艺"],"寓意":["寓意"]},'
+            '"evolution":['
+            '{"era":{"zh":"起源朝代","en":"Origin"},"desc":{"zh":"特征","en":"Features"},"keyword":"key"},'
+            '{"era":{"zh":"发展朝代","en":"Development"},"desc":{"zh":"演变","en":"Changes"},"keyword":"key2"},'
+            '{"era":{"zh":"鼎盛朝代","en":"Peak"},"desc":{"zh":"成熟","en":"Mature"},"keyword":"key3"}'
+            ']}}]'
+        )
+    else:
+        # 自由描述模式：推理2-3种可能的纹样
+        prompt = (
+            f"你是中国古典纹样专家。根据用户描述\"{text}\"，推理出2到3种最可能匹配的传统纹样。\n"
+            "【重要】只输出JSON数组（含2-3个元素），禁止Markdown和其他文字！\n"
+            "格式：\n"
+            '[{"pattern_name":"纹样一名称","details":{'
+            '"zh":{"name":"名称","era":"年代","meaning":"寓意","history":"典故","usage":"场景","cross":"跨文化"},'
+            '"en":{"name":"Name","era":"Era","meaning":"Meaning","history":"History","usage":"Usage","cross":"Cross"},'
+            '"semantics":{"基本信息":["年代"],"工艺":["工艺"],"寓意":["寓意"]},'
+            '"evolution":['
+            '{"era":{"zh":"起源朝代","en":"Origin"},"desc":{"zh":"特征","en":"Features"},"keyword":"key"},'
+            '{"era":{"zh":"发展朝代","en":"Development"},"desc":{"zh":"演变","en":"Changes"},"keyword":"key2"},'
+            '{"era":{"zh":"鼎盛朝代","en":"Peak"},"desc":{"zh":"成熟","en":"Mature"},"keyword":"key3"}'
+            ']}},{"pattern_name":"纹样二名称","details":{...同上格式...}}]'
+        )
 
     if not dashscope.api_key:
         return JSONResponse(status_code=500, content={"detail": "未检测到 API KEY，请在 Railway Variables 中配置 DASHSCOPE_API_KEY。"})
@@ -226,7 +288,7 @@ async def analyze_text(text: str = Form(...)):
                 model='qwen-plus',
                 messages=[{'role': 'user', 'content': prompt}],
                 result_format='message',
-                max_tokens=2000
+                max_tokens=3000 if not is_exact else 2000
             )
 
             if response.status_code != 200:

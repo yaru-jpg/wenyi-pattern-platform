@@ -691,12 +691,12 @@ input[type="text"]:focus, textarea:focus {
 
         <div class="grid-2">
             <div class="panel" style="display: flex; flex-direction: column;">
-                <h2 style="margin-bottom: 20px;"><i class="fas fa-tags"></i> 传统纹样图谱库</h2>
+                <h2 style="margin-bottom: 20px;"><i class="fas fa-tags"></i> <span data-i18n="home_lib_title">传统纹样图谱库</span></h2>
                 <div style="flex-grow: 1; height: 430px; overflow-y: auto; padding-right: 10px;" class="custom-scrollbar">
 
                     <div style="margin-bottom: 20px;">
                         <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
-                            <i class="fas fa-dragon"></i> 动物神兽纹
+                            <i class="fas fa-dragon"></i> <span data-i18n="home_cat1">动物神兽纹</span>
                         </h4>
                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                             <button class="pattern-tag" onclick="quickAnalyze('云龙纹')">云龙纹</button>
@@ -714,7 +714,7 @@ input[type="text"]:focus, textarea:focus {
 
                     <div style="margin-bottom: 20px;">
                         <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
-                            <i class="fas fa-leaf"></i> 祥瑞植物纹
+                            <i class="fas fa-leaf"></i> <span data-i18n="home_cat2">祥瑞植物纹</span>
                         </h4>
                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                             <button class="pattern-tag" onclick="quickAnalyze('宝相花纹')">宝相花纹</button>
@@ -731,7 +731,7 @@ input[type="text"]:focus, textarea:focus {
 
                     <div style="margin-bottom: 20px;">
                         <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
-                            <i class="fas fa-shapes"></i> 骨架几何纹
+                            <i class="fas fa-shapes"></i> <span data-i18n="home_cat3">骨架几何纹</span>
                         </h4>
                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                             <button class="pattern-tag" onclick="quickAnalyze('冰裂纹')">冰裂纹</button>
@@ -747,7 +747,7 @@ input[type="text"]:focus, textarea:focus {
 
                     <div style="margin-bottom: 20px;">
                         <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
-                            <i class="fas fa-cloud-moon"></i> 天文自然纹
+                            <i class="fas fa-cloud-moon"></i> <span data-i18n="home_cat4">天文自然纹</span>
                         </h4>
                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                             <button class="pattern-tag" onclick="quickAnalyze('海水江崖纹')">海水江崖</button>
@@ -761,7 +761,7 @@ input[type="text"]:focus, textarea:focus {
 
                     <div style="margin-bottom: 20px;">
                         <h4 style="color: var(--zhu); border-bottom: 1px dashed var(--border); padding-bottom: 5px; margin-bottom: 10px;">
-                            <i class="fas fa-gem"></i> 器物与吉祥符号
+                            <i class="fas fa-gem"></i> <span data-i18n="home_cat5">器物与吉祥符号</span>
                         </h4>
                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                             <button class="pattern-tag" onclick="quickAnalyze('八宝纹')">八宝纹</button>
@@ -775,24 +775,24 @@ input[type="text"]:focus, textarea:focus {
             </div>
 
             <div class="panel" style="display: flex; flex-direction: column;">
-                <h2 style="margin-bottom: 20px;"><i class="fas fa-bolt"></i> 核心转译工具</h2>
-                <p class="aux-text" style="margin-bottom: 28px; font-size: 13px; line-height: 1.8;">
+                <h2 style="margin-bottom: 20px;"><i class="fas fa-bolt"></i> <span data-i18n="home_tool_title">核心转译工具</span></h2>
+                <p class="aux-text" style="margin-bottom: 28px; font-size: 13px; line-height: 1.8;" data-i18n="home_tool_desc">
                     选择输入方式开始纹样转译：上传纹样图片由视觉大模型识别，或通过文字描述特征由语言大模型推理。
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 16px; flex-grow: 1; justify-content: center;">
                     <button class="btn-primary" style="width: 100%; justify-content: center; padding: 18px 24px; font-size: 15px; letter-spacing: 1px;" onclick="goToTransTab('img')">
                         <i class="fas fa-camera" style="font-size: 18px;"></i>
-                        <span>图像输入</span>
-                        <span style="font-size: 11px; font-weight: 400; opacity: 0.8; margin-left: 4px;">· 上传纹样图片识别</span>
+                        <span data-i18n="home_img_btn">图像输入</span>
+                        <span style="font-size: 11px; font-weight: 400; opacity: 0.8; margin-left: 4px;" data-i18n="home_img_sub">· 上传纹样图片识别</span>
                     </button>
                     <button class="btn-secondary" style="width: 100%; justify-content: center; padding: 18px 24px; font-size: 15px; letter-spacing: 1px;" onclick="goToTransTab('txt')">
                         <i class="fas fa-keyboard" style="font-size: 18px;"></i>
-                        <span>文本描述</span>
-                        <span style="font-size: 11px; font-weight: 400; opacity: 0.7; margin-left: 4px;">· 描述特征推理纹样</span>
+                        <span data-i18n="home_txt_btn">文本描述</span>
+                        <span style="font-size: 11px; font-weight: 400; opacity: 0.7; margin-left: 4px;" data-i18n="home_txt_sub">· 描述特征推理纹样</span>
                     </button>
                 </div>
                 <p class="aux-text" style="margin-top: 28px; text-align: center; font-size: 12px;">
-                    <i class="fas fa-info-circle"></i> 也可点击左侧纹样标签直接查询指定纹样
+                    <i class="fas fa-info-circle"></i> <span data-i18n="home_tip">也可点击左侧纹样标签直接查询指定纹样</span>
                 </p>
             </div>
         </div>
@@ -832,7 +832,7 @@ input[type="text"]:focus, textarea:focus {
 
         <div id="trans-result-section" style="display: none;">
             <div id="text-result-nav" style="display: none; background: linear-gradient(135deg, #FAF7F2, #F4EFE6); border: 1px solid var(--border); padding: 16px; margin-bottom: 24px; text-align: center; border-radius: 4px;">
-                <p style="font-size: 14px; color: var(--deep-zhu); font-weight: 600; margin-bottom: 12px;"><i class="fas fa-lightbulb"></i> 基于您的文本描述，大模型为您推理出以下几种潜在纹样：</p>
+                <p style="font-size: 14px; color: var(--deep-zhu); font-weight: 600; margin-bottom: 12px;"><i class="fas fa-lightbulb"></i> <span data-i18n="text_infer_hint">基于您的文本描述，大模型为您推理出以下几种潜在纹样：</span></p>
                 <div id="text-result-buttons" style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;"></div>
             </div>
 
@@ -910,7 +910,7 @@ input[type="text"]:focus, textarea:focus {
                         </div>
                         <div id="color-placeholder-content" style="display:none; text-align:center; color:#7A6F66; padding: 60px 20px;">
                             <i class="fas fa-palette fa-3x" style="margin-bottom:16px;"></i>
-                            <p>文本推理模式下暂无源图像可提取色彩，请参考上方网络搜索图像特征。</p>
+                            <p data-i18n="ml_color_placeholder">文本推理模式下暂无源图像可提取色彩，请参考上方网络搜索图像特征。</p>
                         </div>
                     </div>
 
@@ -982,6 +982,12 @@ const dict = {
         sys_date: "平台设定日期: 2026-03-15", tts_btn: "开启语音播报", nav_brand: "纹谱",
         nav_home: "首页", nav_trans: "纹样转译", nav_collect: "我的收藏", nav_help: "帮助中心",
         home_title: "多模态纹样符号转译", home_btn: "快捷特征解析",
+        home_lib_title: "传统纹样图谱库", home_tool_title: "核心转译工具",
+        home_tool_desc: "选择输入方式开始纹样转译：上传纹样图片由视觉大模型识别，或通过文字描述特征由语言大模型推理。",
+        home_img_btn: "图像输入", home_img_sub: "· 上传纹样图片识别",
+        home_txt_btn: "文本描述", home_txt_sub: "· 描述特征推理纹样",
+        home_tip: "也可点击左侧纹样标签直接查询指定纹样",
+        home_cat1: "动物神兽纹", home_cat2: "祥瑞植物纹", home_cat3: "骨架几何纹", home_cat4: "天文自然纹", home_cat5: "器物与吉祥符号",
         trans_title: "多模态纹样转译", trans_reset: "重新输入转译", trans_img_in: "图像输入",
         trans_img_hint: "点击区域调用设备相册", trans_txt_in: "文本描述", trans_txt_hint: "请详细描述视觉特征，例如：中心呈圆形放射状，像一朵莲花...",
         trans_status: "等待数据输入", trans_submit: "提交解析", tab_card: "纹样卡片", tab_map: "纹样图谱",
@@ -991,15 +997,25 @@ const dict = {
         ml_line: "线条结构层", ml_color: "色彩构成层", ml_evo: "纹样演变时间轴层", ml_sem: "语义关联网络",
         ml_line_t: "矢量轮廓与纹理分层", ml_line_d: "悬停高亮主纹、辅纹与底纹区域。",
         ml_color_t1: "动态配比饼图", ml_color_t2: "色板特征提取 (点击查看详情)", ml_color_btn: "导出方案", ml_color_t3: "分布热力图示意",
+        ml_color_placeholder: "文本推理模式下暂无源图像可提取色彩，请参考上方网络搜索图像特征。",
+        ml_line_placeholder: "文本推理模式下暂无源图像可提取结构，请参考上方网络搜索图像与色彩特征。",
         ml_evo_t: "同一主题纹样历史演变轨迹", ml_evo_d: "点击下方时间轴节点，查看不同历史时期的形态演变与代表性器物图像。",
         ml_sem_t: "跨文化语义力导向关联图", ml_sem_d: "节点大小表示关联强度，连线展示文化标签发散逻辑。",
+        text_infer_hint: "基于您的文本描述，大模型为您推理出以下几种潜在纹样：",
         col_time: "收藏时间", col_name: "纹样名称", col_op: "操作", col_empty: "暂无收藏记录，请前往纹样卡片页面点击星标收藏。",
-        help_t: "常见问题", help_1: "1. 上传图片后，系统将自动进行图像解析与结构提取。", help_2: "2. 转译结果的准确度受图片光线与清晰度影响。"
+        help_t: "常见问题", help_1: "1. 上传图片后，系统将自动进行图像解析与结构提取。", help_2: "2. 转译结果的准确度受图片光线与清晰度影响。",
+        color_no_extract: "文本模式下暂无色彩提取"
     },
     en: {
         sys_date: "System Date: 2026-03-15", tts_btn: "Enable Voice", nav_brand: "WenPu",
         nav_home: "Home", nav_trans: "Translate", nav_collect: "Collections", nav_help: "Help",
         home_title: "Multimodal Symbol Translation", home_btn: "Quick Translation",
+        home_lib_title: "Pattern Library", home_tool_title: "Translation Tools",
+        home_tool_desc: "Choose an input method: upload an image for visual AI recognition, or describe features in text for language AI inference.",
+        home_img_btn: "Image Input", home_img_sub: "· Upload pattern image",
+        home_txt_btn: "Text Input", home_txt_sub: "· Infer pattern from text",
+        home_tip: "Or click a pattern tag on the left to query directly",
+        home_cat1: "Animals & Mythical Beasts", home_cat2: "Auspicious Plants", home_cat3: "Geometric Frames", home_cat4: "Celestial & Natural", home_cat5: "Objects & Auspicious Symbols",
         trans_title: "Multimodal Translation", trans_reset: "Reset", trans_img_in: "Image Input",
         trans_img_hint: "Click to open device album", trans_txt_in: "Text Input", trans_txt_hint: "Describe visual features, e.g. circular radiating center like a lotus...",
         trans_status: "Awaiting Input", trans_submit: "Submit", tab_card: "Pattern Card", tab_map: "Pattern Map",
@@ -1009,15 +1025,25 @@ const dict = {
         ml_line: "Line Structure", ml_color: "Color Composition", ml_evo: "Evolution Timeline", ml_sem: "Semantic Network",
         ml_line_t: "Vector Contour Layers", ml_line_d: "Hover to highlight main and sub-textures.",
         ml_color_t1: "Dynamic Ratio Chart", ml_color_t2: "Palette Extraction", ml_color_btn: "Export", ml_color_t3: "Heatmap Distribution",
+        ml_color_placeholder: "No source image in text mode. Refer to the search image above for color reference.",
+        ml_line_placeholder: "No source image in text mode. Please refer to the online search image for structure reference.",
         ml_evo_t: "Historical Evolution Trajectory", ml_evo_d: "Click timeline nodes to view morphological changes across eras.",
         ml_sem_t: "Force-Directed Semantic Graph", ml_sem_d: "Node size indicates correlation strength.",
+        text_infer_hint: "Based on your description, the AI inferred these potential patterns:",
         col_time: "Time", col_name: "Name", col_op: "Action", col_empty: "No collections yet. Click the star on a pattern card.",
-        help_t: "FAQ", help_1: "1. Auto-parsing upon upload.", help_2: "2. Accuracy depends on image clarity."
+        help_t: "FAQ", help_1: "1. Auto-parsing upon upload.", help_2: "2. Accuracy depends on image clarity.",
+        color_no_extract: "No color extraction in text mode"
     },
     fr: {
         sys_date: "Date: 2026-03-15", tts_btn: "Activer la voix", nav_brand: "WenPu",
         nav_home: "Accueil", nav_trans: "Traduction", nav_collect: "Collections", nav_help: "Aide",
         home_title: "Traduction de motifs multimodaux", home_btn: "Analyse rapide",
+        home_lib_title: "Bibliothèque de motifs", home_tool_title: "Outils de traduction",
+        home_tool_desc: "Choisissez un mode de saisie : image pour la reconnaissance visuelle, ou texte pour l'inférence linguistique.",
+        home_img_btn: "Image", home_img_sub: "· Charger une image",
+        home_txt_btn: "Texte", home_txt_sub: "· Décrire les caractéristiques",
+        home_tip: "Ou cliquez sur un tag de motif à gauche",
+        home_cat1: "Animaux & Créatures", home_cat2: "Plantes de bon augure", home_cat3: "Géométrie", home_cat4: "Céleste & Nature", home_cat5: "Objets & Symboles",
         trans_title: "Traduction de motifs", trans_reset: "Réinitialiser", trans_img_in: "Image",
         trans_img_hint: "Cliquez pour ouvrir l'album", trans_txt_in: "Texte", trans_txt_hint: "Décrivez les caractéristiques visuelles...",
         trans_status: "En attente", trans_submit: "Analyser", tab_card: "Fiche motif", tab_map: "Carte motif",
@@ -1027,15 +1053,25 @@ const dict = {
         ml_line: "Structure linéaire", ml_color: "Composition colorée", ml_evo: "Chronologie", ml_sem: "Réseau sémantique",
         ml_line_t: "Couches de contours vectoriels", ml_line_d: "Survolez pour mettre en évidence les textures.",
         ml_color_t1: "Graphique dynamique", ml_color_t2: "Extraction de palette", ml_color_btn: "Exporter", ml_color_t3: "Carte thermique",
+        ml_color_placeholder: "Pas d'image source en mode texte. Référez-vous à l'image de recherche.",
+        ml_line_placeholder: "Pas d'image source en mode texte. Référez-vous à l'image de recherche.",
         ml_evo_t: "Trajectoire d'évolution historique", ml_evo_d: "Cliquez sur les nœuds pour voir l'évolution.",
         ml_sem_t: "Graphe sémantique", ml_sem_d: "La taille des nœuds indique la force de corrélation.",
+        text_infer_hint: "Basé sur votre description, l'IA a inféré ces motifs potentiels :",
         col_time: "Date", col_name: "Nom", col_op: "Action", col_empty: "Aucune collection. Cliquez sur l'étoile d'une fiche.",
-        help_t: "FAQ", help_1: "1. Analyse automatique après le chargement.", help_2: "2. La précision dépend de la clarté de l'image."
+        help_t: "FAQ", help_1: "1. Analyse automatique après le chargement.", help_2: "2. La précision dépend de la clarté de l'image.",
+        color_no_extract: "Pas d'extraction de couleur en mode texte"
     },
     ja: {
         sys_date: "日付: 2026-03-15", tts_btn: "音声をオン", nav_brand: "紋譜",
         nav_home: "ホーム", nav_trans: "翻訳", nav_collect: "コレクション", nav_help: "ヘルプ",
         home_title: "マルチモーダル文様翻訳", home_btn: "クイック解析",
+        home_lib_title: "文様ライブラリ", home_tool_title: "翻訳ツール",
+        home_tool_desc: "入力方法を選択：画像アップロードによるビジュアルAI認識、またはテキスト説明による推論。",
+        home_img_btn: "画像入力", home_img_sub: "· 文様画像をアップロード",
+        home_txt_btn: "テキスト入力", home_txt_sub: "· 特徴を説明して推論",
+        home_tip: "または左の文様タグをクリックして直接検索",
+        home_cat1: "動物・神獣紋", home_cat2: "吉祥植物紋", home_cat3: "幾何骨格紋", home_cat4: "天文・自然紋", home_cat5: "器物・吉祥紋",
         trans_title: "文様翻訳", trans_reset: "リセット", trans_img_in: "画像入力",
         trans_img_hint: "クリックしてアルバムを開く", trans_txt_in: "テキスト入力", trans_txt_hint: "視覚的特徴を説明してください...",
         trans_status: "入力待ち", trans_submit: "解析する", tab_card: "文様カード", tab_map: "文様マップ",
@@ -1045,15 +1081,25 @@ const dict = {
         ml_line: "線構造", ml_color: "色構成", ml_evo: "変遷タイムライン", ml_sem: "意味ネットワーク",
         ml_line_t: "ベクターアウトラインレイヤー", ml_line_d: "ホバーで主紋・副紋をハイライト。",
         ml_color_t1: "動的比率チャート", ml_color_t2: "パレット抽出", ml_color_btn: "エクスポート", ml_color_t3: "ヒートマップ",
+        ml_color_placeholder: "テキストモードでは色彩抽出ができません。上の検索画像を参照してください。",
+        ml_line_placeholder: "テキストモードでは構造抽出ができません。上の検索画像を参照してください。",
         ml_evo_t: "歴史的変遷軌跡", ml_evo_d: "タイムラインのノードをクリックして変遷を確認。",
         ml_sem_t: "意味力指向グラフ", ml_sem_d: "ノードの大きさは相関の強さを示します。",
+        text_infer_hint: "あなたの説明に基づいて、AIが以下の潜在的な文様を推論しました：",
         col_time: "日時", col_name: "名称", col_op: "操作", col_empty: "コレクションなし。カードの星をクリック。",
-        help_t: "FAQ", help_1: "1. アップロード後に自動解析。", help_2: "2. 精度は画像の明瞭さに依存。"
+        help_t: "FAQ", help_1: "1. アップロード後に自動解析。", help_2: "2. 精度は画像の明瞭さに依存。",
+        color_no_extract: "テキストモードでは色彩抽出なし"
     },
     ko: {
         sys_date: "날짜: 2026-03-15", tts_btn: "음성 켜기", nav_brand: "문보",
         nav_home: "홈", nav_trans: "번역", nav_collect: "컬렉션", nav_help: "도움말",
         home_title: "멀티모달 문양 번역", home_btn: "빠른 분석",
+        home_lib_title: "문양 라이브러리", home_tool_title: "번역 도구",
+        home_tool_desc: "입력 방법 선택: 이미지 업로드로 시각 AI 인식, 또는 텍스트 설명으로 추론.",
+        home_img_btn: "이미지 입력", home_img_sub: "· 문양 이미지 업로드",
+        home_txt_btn: "텍스트 입력", home_txt_sub: "· 특징 설명으로 추론",
+        home_tip: "또는 왼쪽 문양 태그를 클릭하여 직접 검색",
+        home_cat1: "동물·신수 문양", home_cat2: "길상 식물 문양", home_cat3: "기하 골격 문양", home_cat4: "천문·자연 문양", home_cat5: "기물·길상 문양",
         trans_title: "문양 번역", trans_reset: "초기화", trans_img_in: "이미지 입력",
         trans_img_hint: "클릭하여 앨범 열기", trans_txt_in: "텍스트 입력", trans_txt_hint: "시각적 특징을 설명하세요...",
         trans_status: "입력 대기 중", trans_submit: "분석", tab_card: "문양 카드", tab_map: "문양 지도",
@@ -1063,15 +1109,25 @@ const dict = {
         ml_line: "선 구조", ml_color: "색 구성", ml_evo: "변천 타임라인", ml_sem: "의미 네트워크",
         ml_line_t: "벡터 윤곽 레이어", ml_line_d: "마우스 오버로 문양 강조.",
         ml_color_t1: "동적 비율 차트", ml_color_t2: "팔레트 추출", ml_color_btn: "내보내기", ml_color_t3: "히트맵",
+        ml_color_placeholder: "텍스트 모드에서는 색채 추출이 불가합니다. 위의 검색 이미지를 참고하세요.",
+        ml_line_placeholder: "텍스트 모드에서는 구조 추출이 불가합니다. 위의 검색 이미지를 참고하세요.",
         ml_evo_t: "역사적 변천 궤적", ml_evo_d: "타임라인 노드를 클릭하여 변천 확인.",
         ml_sem_t: "의미 방향 그래프", ml_sem_d: "노드 크기는 상관 강도를 나타냅니다.",
+        text_infer_hint: "귀하의 설명을 바탕으로 AI가 다음과 같은 잠재적 문양을 추론했습니다:",
         col_time: "시간", col_name: "이름", col_op: "작업", col_empty: "컬렉션 없음. 카드의 별을 클릭하세요.",
-        help_t: "FAQ", help_1: "1. 업로드 후 자동 분석.", help_2: "2. 정확도는 이미지 선명도에 따라 다릅니다."
+        help_t: "FAQ", help_1: "1. 업로드 후 자동 분석.", help_2: "2. 정확도는 이미지 선명도에 따라 다릅니다.",
+        color_no_extract: "텍스트 모드에서는 색채 추출 없음"
     },
     ar: {
         sys_date: "التاريخ: 2026-03-15", tts_btn: "تشغيل الصوت", nav_brand: "ون بو",
         nav_home: "الرئيسية", nav_trans: "ترجمة", nav_collect: "المجموعات", nav_help: "المساعدة",
         home_title: "ترجمة الأنماط متعددة الوسائط", home_btn: "تحليل سريع",
+        home_lib_title: "مكتبة الأنماط", home_tool_title: "أدوات الترجمة",
+        home_tool_desc: "اختر طريقة الإدخال: رفع صورة للتعرف البصري، أو وصف نصي للاستنتاج.",
+        home_img_btn: "إدخال صورة", home_img_sub: "· رفع صورة النمط",
+        home_txt_btn: "إدخال نص", home_txt_sub: "· وصف الميزات للاستنتاج",
+        home_tip: "أو انقر على وسم النمط على اليسار",
+        home_cat1: "حيوانات ومخلوقات", home_cat2: "نباتات سعيدة", home_cat3: "هندسة هيكلية", home_cat4: "سماوي وطبيعي", home_cat5: "أشياء ورموز",
         trans_title: "ترجمة الأنماط", trans_reset: "إعادة تعيين", trans_img_in: "إدخال صورة",
         trans_img_hint: "انقر لفتح الألبوم", trans_txt_in: "إدخال نص", trans_txt_hint: "صف الميزات البصرية...",
         trans_status: "في انتظار الإدخال", trans_submit: "تحليل", tab_card: "بطاقة النمط", tab_map: "خريطة النمط",
@@ -1081,10 +1137,14 @@ const dict = {
         ml_line: "هيكل الخط", ml_color: "تركيب الألوان", ml_evo: "الجدول الزمني", ml_sem: "الشبكة الدلالية",
         ml_line_t: "طبقات المخطط المتجه", ml_line_d: "مرر فوق لتمييز الأنسجة.",
         ml_color_t1: "مخطط النسبة الديناميكي", ml_color_t2: "استخراج اللوحة", ml_color_btn: "تصدير", ml_color_t3: "خريطة الحرارة",
+        ml_color_placeholder: "لا يمكن استخراج الألوان في وضع النص. راجع صورة البحث أعلاه.",
+        ml_line_placeholder: "لا يمكن استخراج البنية في وضع النص. راجع صورة البحث أعلاه.",
         ml_evo_t: "مسار التطور التاريخي", ml_evo_d: "انقر على العقد لرؤية التطور.",
         ml_sem_t: "رسم بياني دلالي", ml_sem_d: "حجم العقدة يشير إلى قوة الارتباط.",
+        text_infer_hint: "استناداً إلى وصفك، استنتج الذكاء الاصطناعي الأنماط المحتملة التالية:",
         col_time: "الوقت", col_name: "الاسم", col_op: "الإجراء", col_empty: "لا توجد مجموعات. انقر على النجمة في البطاقة.",
-        help_t: "الأسئلة الشائعة", help_1: "1. التحليل التلقائي بعد الرفع.", help_2: "2. تعتمد الدقة على وضوح الصورة."
+        help_t: "الأسئلة الشائعة", help_1: "1. التحليل التلقائي بعد الرفع.", help_2: "2. تعتمد الدقة على وضوح الصورة.",
+        color_no_extract: "لا استخراج للألوان في وضع النص"
     }
 };
 
@@ -1115,7 +1175,28 @@ function changeLanguage() {
     if (!isTTSActive) {
         document.getElementById('tts-text').innerText = dict[currentLang]?.tts_btn || '开启语音播报';
     }
-    if (currentResult) updateDynamicContentLanguage();
+    // 更新动态功能区内容
+    if (currentResult) {
+        updateDynamicContentLanguage();
+        // 更新文本模式占位文字
+        if (isTextMode) {
+            const linePlaceholder = document.querySelector('#line-art-container p');
+            if (linePlaceholder) linePlaceholder.innerText = dict[currentLang]?.ml_line_placeholder || dict['zh'].ml_line_placeholder;
+            const colorPlaceholder = document.querySelector('#color-placeholder-content p');
+            if (colorPlaceholder) colorPlaceholder.innerText = dict[currentLang]?.ml_color_placeholder || dict['zh'].ml_color_placeholder;
+            const colorNoExtract = document.querySelector('#val-color span');
+            if (colorNoExtract) colorNoExtract.innerText = dict[currentLang]?.color_no_extract || dict['zh'].color_no_extract;
+        }
+        // 重新渲染语义关联图（节点分类名称随语言变化）
+        setTimeout(renderSemantic, 100);
+    }
+    // 更新res-status等待状态文字
+    const statusEl = document.getElementById('res-status');
+    if (statusEl && statusEl.innerText === dict['zh'].trans_status || statusEl?.innerText === dict['en'].trans_status ||
+        statusEl?.innerText === dict['fr'].trans_status || statusEl?.innerText === dict['ja'].trans_status ||
+        statusEl?.innerText === dict['ko'].trans_status || statusEl?.innerText === dict['ar'].trans_status) {
+        statusEl.innerText = dict[currentLang].trans_status;
+    }
 }
 
 function updateDynamicContentLanguage() {
@@ -1311,8 +1392,8 @@ document.getElementById('trigger-upload-btn').addEventListener('click', () => {
     }
 });
 
-// 带超时的 fetch 封装（默认 55 秒，大模型调用较慢）
-async function fetchWithTimeout(url, options, timeoutMs = 55000) {
+// 带超时的 fetch 封装（默认 75 秒，大模型调用较慢）
+async function fetchWithTimeout(url, options, timeoutMs = 75000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -1370,6 +1451,9 @@ async function processAnalysis(file) {
         switchTab('info', 'basic');
         syncFavBtn();
         switchTab('trans', 'card');
+        // 移除主图加载占位（图像模式主图已在上传时设置）
+        const oldPh = document.getElementById('card-main-img-container').querySelector('.img-loading-placeholder');
+        if (oldPh) oldPh.style.display = 'none';
         setTimeout(renderCharts, 150);
         setTimeout(renderSemantic, 150);
     } catch (err) {
@@ -1384,6 +1468,7 @@ async function processTextAnalysis(text, isExactMatch = false) {
     setLoadingStatus(currentLang === 'zh' ? '大模型正在推理，约需 10~30 秒...' : 'AI Inferring, ~10-30s...');
     const formData = new FormData();
     formData.append('text', text);
+    formData.append('exact', isExactMatch ? '1' : '0');
 
     try {
         const response = await fetchWithTimeout(`${API_BASE}/api/analyze_text`, { method: 'POST', body: formData });
@@ -1427,13 +1512,30 @@ function switchTextResult(idx, btnElement, hideNav=false) {
 
     let searchKeyword = currentResult.pattern_type + " 古典纹样 文物";
     let imgUrl = `${API_BASE}/api/image?q=${encodeURIComponent(searchKeyword)}`;
-    document.getElementById('display-main-img').src = imgUrl;
-    document.getElementById('display-main-img').style.display = 'block';
+    const mainImg = document.getElementById('display-main-img');
+    mainImg.src = '';
+    mainImg.style.display = 'block';
+    // 先显示加载中占位，图片加载完成后替换
+    const imgContainer = document.getElementById('card-main-img-container');
+    let placeholderDiv = imgContainer.querySelector('.img-loading-placeholder');
+    if (!placeholderDiv) {
+        placeholderDiv = document.createElement('div');
+        placeholderDiv.className = 'img-loading-placeholder';
+        placeholderDiv.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--silk);z-index:3;';
+        placeholderDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color:var(--amber);font-size:28px;"></i>';
+        imgContainer.appendChild(placeholderDiv);
+    } else {
+        placeholderDiv.style.display = 'flex';
+    }
+    mainImg.style.display = 'none';
+    mainImg.onload = () => { mainImg.style.display = 'block'; placeholderDiv.style.display = 'none'; };
+    mainImg.onerror = () => { mainImg.style.display = 'none'; placeholderDiv.innerHTML = `<span style="color:var(--smoke);font-size:13px;padding:16px;text-align:center;">${currentResult.pattern_type}</span>`; };
+    mainImg.src = imgUrl;
 
     updateDynamicContentLanguage();
 
-    document.getElementById('val-color').innerHTML = '<span style="color:#7A6F66; font-weight: 500;">文本模式下暂无色彩提取</span>';
-    document.getElementById('line-art-container').innerHTML = `<div style="text-align:center; color:#7A6F66; padding: 60px 20px;"><i class="fas fa-magic fa-3x" style="margin-bottom:16px;"></i><p>文本推理模式下暂无源图像可提取结构，请参考上方网络搜索图像与色彩特征。</p></div>`;
+    document.getElementById('val-color').innerHTML = `<span style="color:#7A6F66; font-weight: 500;">${dict[currentLang]?.color_no_extract || dict['zh'].color_no_extract}</span>`;
+    document.getElementById('line-art-container').innerHTML = `<div style="text-align:center; color:#7A6F66; padding: 60px 20px;"><i class="fas fa-magic fa-3x" style="margin-bottom:16px;"></i><p>${dict[currentLang]?.ml_line_placeholder || dict['zh'].ml_line_placeholder}</p></div>`;
 
     document.getElementById('color-real-content').style.display = 'none';
     document.getElementById('color-placeholder-content').style.display = 'block';
@@ -1568,7 +1670,12 @@ function selectEvoNode(index, finalName) {
     // 使用中文关键词搜索图片（不受语言切换影响，确保搜索质量）
     let searchKeyword = (evo.era['zh'] || eraText) + " " + (currentResult?.pattern_type || finalName) + " 文物";
     let imgUrl = `${API_BASE}/api/image?q=${encodeURIComponent(searchKeyword)}`;
-    document.getElementById('evo-img-display').innerHTML = `<img src="${imgUrl}" alt="${finalName} ${eraText}" style="width:100%; height:100%; object-fit:cover;">`;
+    const evoBox = document.getElementById('evo-img-display');
+    evoBox.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><i class="fas fa-spinner fa-spin" style="color:var(--amber);font-size:24px;"></i></div>';
+    const evoImg = new Image();
+    evoImg.onload = () => { evoBox.innerHTML = `<img src="${imgUrl}" alt="${finalName} ${eraText}" style="width:100%; height:100%; object-fit:cover;">`; };
+    evoImg.onerror = () => { evoBox.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--smoke);font-size:13px;padding:16px;text-align:center;">${finalName} · ${eraText}</div>`; };
+    evoImg.src = imgUrl;
 }
 
 function renderSemantic() {
