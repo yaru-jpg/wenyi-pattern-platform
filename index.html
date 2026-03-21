@@ -742,28 +742,24 @@ input[type="text"]:focus, textarea:focus {
 
             <div class="panel" style="display: flex; flex-direction: column;">
                 <h2 style="margin-bottom: 20px;"><i class="fas fa-bolt"></i> 核心转译工具</h2>
-                <div class="tab-nav" style="border-bottom: none; margin-bottom: 0;">
-                    <button class="tab-btn active" id="tab-btn-home-img" onclick="switchHomeTab('img')" data-i18n="trans_img_in">图像输入</button>
-                    <button class="tab-btn" id="tab-btn-home-txt" onclick="switchHomeTab('txt')" data-i18n="trans_txt_in">文本描述</button>
+                <p class="aux-text" style="margin-bottom: 28px; font-size: 13px; line-height: 1.8;">
+                    选择输入方式开始纹样转译：上传纹样图片由视觉大模型识别，或通过文字描述特征由语言大模型推理。
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 16px; flex-grow: 1; justify-content: center;">
+                    <button class="btn-primary" style="width: 100%; justify-content: center; padding: 18px 24px; font-size: 15px; letter-spacing: 1px;" onclick="goToTransTab('img')">
+                        <i class="fas fa-camera" style="font-size: 18px;"></i>
+                        <span>图像输入</span>
+                        <span style="font-size: 11px; font-weight: 400; opacity: 0.8; margin-left: 4px;">· 上传纹样图片识别</span>
+                    </button>
+                    <button class="btn-secondary" style="width: 100%; justify-content: center; padding: 18px 24px; font-size: 15px; letter-spacing: 1px;" onclick="goToTransTab('txt')">
+                        <i class="fas fa-keyboard" style="font-size: 18px;"></i>
+                        <span>文本描述</span>
+                        <span style="font-size: 11px; font-weight: 400; opacity: 0.7; margin-left: 4px;">· 描述特征推理纹样</span>
+                    </button>
                 </div>
-
-                <div class="panel" style="margin-top: 0; border-top-left-radius: 0; flex-grow: 1; display: flex; flex-direction: column;">
-                    <div id="tab-content-home-img" class="tab-content active" style="flex-grow: 1;">
-                        <div id="home-upload-area" class="upload-area-box">
-                            <i class="fas fa-cloud-upload-alt fa-3x" style="margin-bottom: 16px;"></i>
-                            <span style="font-weight: 600;" data-i18n="trans_img_hint">点击区域调用设备相册</span>
-                        </div>
-                    </div>
-
-                    <div id="tab-content-home-txt" class="tab-content" style="flex-grow: 1;">
-                        <textarea id="home-text-input-area" rows="10" data-i18n="trans_txt_hint" placeholder="请详细描述视觉特征，例如：中心呈圆形放射状，像一朵莲花..."></textarea>
-                    </div>
-
-                    <div style="text-align: right; margin-top: auto; border-top: 1px solid var(--border); padding-top: 16px; display: flex; align-items: center; justify-content: flex-end; gap: 16px;">
-                        <span id="home-res-status" style="font-weight: 600; color: var(--smoke); font-size: 13px;" data-i18n="trans_status">等待数据输入</span>
-                        <button class="btn-primary" id="home-trigger-upload-btn"><i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span></button>
-                    </div>
-                </div>
+                <p class="aux-text" style="margin-top: 28px; text-align: center; font-size: 12px;">
+                    <i class="fas fa-info-circle"></i> 也可点击左侧纹样标签直接查询指定纹样
+                </p>
             </div>
         </div>
     </div>
@@ -1074,6 +1070,14 @@ function switchMainPage(pageId) {
     }
 }
 
+// 首页两个入口按钮：跳转到纹样转译页对应 tab
+function goToTransTab(tabId) {
+    switchMainPage('trans');
+    if (!currentResult) {
+        switchTab('input', tabId);
+    }
+}
+
 function switchTab(group, tabId) {
     document.querySelectorAll(`[id^="tab-btn-${group}"]`).forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll(`[id^="tab-content-${group}"]`).forEach(content => content.classList.remove('active'));
@@ -1101,21 +1105,28 @@ function switchHomeTab(tabId) {
     document.getElementById(`tab-content-home-${tabId}`).classList.add('active');
 }
 
-// 核心改动：左侧标签的专属方法，不切换页面，在原地等候加载，并隐藏上方导航栏。
+// 左侧纹样标签：跳转到纹样转译页的文本tab，并自动填入纹样名提交
 function quickAnalyze(patternName) {
-    const statusEl = document.getElementById('home-res-status');
-    const origText = statusEl.innerHTML;
-    // 强制原地显示加载中状态
-    statusEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span style="color: var(--zhu);">` + (currentLang === 'zh' ? `正在为您加载【${patternName}】...` : `Loading ${patternName}...`) + `</span>`;
+    // 先跳转到转译页，切到文本tab
+    switchMainPage('trans');
+    if (!currentResult) {
+        switchTab('input', 'txt');
+        // 填入纹样名
+        document.getElementById('text-input-area').value = patternName;
+    }
+    // 设置状态提示
+    document.getElementById('res-status').innerHTML =
+        `<i class="fas fa-spinner fa-spin"></i> <span style="color:var(--zhu);">` +
+        (currentLang === 'zh' ? `正在加载【${patternName}】...` : `Loading ${patternName}...`) +
+        `</span>`;
 
-    // 传入 true 表示为 "ExactMatch"（精准匹配，无需显示3个按钮的导航栏）
+    // 自动触发解析
     processTextAnalysis(patternName, true).then(() => {
-        switchMainPage('trans');
-        statusEl.innerHTML = origText;
+        // 成功后隐藏上传区，显示结果
     }).catch(err => {
         const errMsg = err.message || '加载失败';
-        statusEl.innerHTML = `<span style="color:var(--zhu);">${errMsg}，请重试</span>`;
-        setTimeout(() => statusEl.innerHTML = origText, 5000);
+        document.getElementById('res-status').innerHTML =
+            `<span style="color:var(--zhu);">${errMsg}，请重试</span>`;
     });
 }
 
@@ -1126,7 +1137,6 @@ fileInput.style.display = 'none';
 document.body.appendChild(fileInput);
 
 document.getElementById('upload-area').addEventListener('click', () => fileInput.click());
-document.getElementById('home-upload-area').addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -1136,47 +1146,13 @@ fileInput.addEventListener('change', (e) => {
 
     const imgHtml = `<img src="${objectUrl}" style="max-width:100%; max-height:100%; object-fit:contain; z-index:2;">`;
     document.getElementById('upload-area').innerHTML = imgHtml;
-    document.getElementById('home-upload-area').innerHTML = imgHtml;
 
     document.getElementById('display-main-img').src = objectUrl;
     document.getElementById('display-main-img').style.display = 'block';
     document.getElementById('res-status').innerText = '文件已就绪';
-    document.getElementById('home-res-status').innerText = '文件已就绪';
 });
 
-// 右侧核心入口的提交逻辑（等待执行完毕后才进行跳转）
-document.getElementById('home-trigger-upload-btn').addEventListener('click', () => {
-    const isImg = document.getElementById('tab-content-home-img').classList.contains('active');
-    const btnHtml = document.getElementById('home-trigger-upload-btn');
-
-    if (isImg) {
-        if (!currentImageFile) {
-            alert(currentLang === 'zh' ? "请先点击虚线框选择一张图片！" : "Please select an image first!");
-            return;
-        }
-        btnHtml.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ` + (currentLang === 'zh' ? "处理中..." : "Processing...");
-        isTextMode = false;
-        document.getElementById('text-result-nav').style.display = 'none';
-
-        processAnalysis(currentImageFile).then(() => {
-            switchMainPage('trans');
-            btnHtml.innerHTML = `<i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span>`;
-        });
-    } else {
-        const textVal = document.getElementById('home-text-input-area').value.trim();
-        if (!textVal) {
-            alert(currentLang === 'zh' ? "请输入特征描述或直接点击左侧纹样标签！" : "Please enter text description!");
-            return;
-        }
-        btnHtml.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ` + (currentLang === 'zh' ? "推理中..." : "Inferring...");
-
-        processTextAnalysis(textVal, false).then(() => {
-            switchMainPage('trans');
-            btnHtml.innerHTML = `<i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span>`;
-        });
-    }
-});
-
+// 纹样转译页提交按钮逻辑
 document.getElementById('trigger-upload-btn').addEventListener('click', () => {
     const isImg = document.getElementById('tab-content-input-img').classList.contains('active');
     const btnHtml = document.getElementById('trigger-upload-btn');
@@ -1224,10 +1200,9 @@ async function fetchWithTimeout(url, options, timeoutMs = 55000) {
 
 // 设置加载状态的统一方法
 function setLoadingStatus(msg, isError = false) {
-    const el1 = document.getElementById('res-status');
-    const el2 = document.getElementById('home-res-status');
+    const el = document.getElementById('res-status');
     const style = isError ? 'color:var(--zhu);font-weight:600;' : 'color:var(--smoke);font-weight:600;';
-    [el1, el2].forEach(el => { if(el) { el.style = style; el.innerText = msg; } });
+    if(el) { el.style = style; el.innerText = msg; }
 }
 
 async function processAnalysis(file) {
@@ -1323,7 +1298,7 @@ function switchTextResult(idx, btnElement, hideNav=false) {
     currentResult = textResultArray[idx];
 
     let searchKeyword = currentResult.pattern_type + " 古典纹样 文物";
-    let imgUrl = `https://tse2.mm.bing.net/th?q=${encodeURIComponent(searchKeyword)}&w=600&h=450&c=7&rs=1&p=0`;
+    let imgUrl = `${API_BASE}/api/image?q=${encodeURIComponent(searchKeyword)}`;
     document.getElementById('display-main-img').src = imgUrl;
     document.getElementById('display-main-img').style.display = 'block';
 
@@ -1348,12 +1323,9 @@ function resetTranslation() {
     const uploadHTML = '<i class="fas fa-cloud-upload-alt fa-3x" style="margin-bottom: 16px;"></i><span style="font-weight: 600;" data-i18n="trans_img_hint">点击区域调用设备相册</span>';
 
     document.getElementById('upload-area').innerHTML = uploadHTML;
-    document.getElementById('home-upload-area').innerHTML = uploadHTML;
     document.getElementById('text-input-area').value = '';
-    document.getElementById('home-text-input-area').value = '';
 
     document.getElementById('res-status').innerText = dict[currentLang]["trans_status"];
-    document.getElementById('home-res-status').innerText = dict[currentLang]["trans_status"];
 
     document.getElementById('trans-upload-section').style.display = 'block';
     document.getElementById('trans-result-section').style.display = 'none';
@@ -1461,7 +1433,7 @@ function selectEvoNode(index, finalName) {
     document.getElementById('evo-info-desc').innerText = descText;
 
     let searchKeyword = (evo.era['zh'] || eraText) + " " + finalName + " 文物";
-    let imgUrl = `https://tse2.mm.bing.net/th?q=${encodeURIComponent(searchKeyword)}&w=400&h=300&c=7&rs=1&p=0`;
+    let imgUrl = `${API_BASE}/api/image?q=${encodeURIComponent(searchKeyword)}`;
     document.getElementById('evo-img-display').innerHTML = `<img src="${imgUrl}" alt="${finalName} ${eraText}" style="width:100%; height:100%; object-fit:cover;">`;
 }
 

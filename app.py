@@ -7,10 +7,12 @@ import re
 import io
 import base64
 import traceback
+import urllib.request
+import urllib.parse
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from sklearn.cluster import KMeans
 import dashscope
 
@@ -48,6 +50,32 @@ async def health_check():
         "api_key_configured": api_key_set,
         "message": "API KEY 已配置" if api_key_set else "⚠️ 警告：DASHSCOPE_API_KEY 未设置，大模型调用将失败！请在 Railway Variables 中添加该环境变量。"
     }
+
+
+# ==========================================
+# 4. 图片代理接口（绕过浏览器跨域/防盗链）
+# ==========================================
+@app.get("/api/image")
+async def proxy_image(q: str):
+    """代理搜索图片，避免浏览器跨域/防盗链问题"""
+    try:
+        search_url = f"https://tse2.mm.bing.net/th?q={urllib.parse.quote(q)}&w=600&h=450&c=7&rs=1&p=0"
+        req = urllib.request.Request(search_url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': 'https://www.bing.com/'
+        })
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = resp.read()
+            content_type = resp.headers.get('Content-Type', 'image/jpeg')
+        return Response(content=data, media_type=content_type)
+    except Exception as e:
+        # 返回一个占位 SVG
+        svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450">
+  <rect width="600" height="450" fill="#F4EFE6"/>
+  <text x="300" y="200" text-anchor="middle" font-family="serif" font-size="18" fill="#5C1E16">{q}</text>
+  <text x="300" y="240" text-anchor="middle" font-family="serif" font-size="13" fill="#9A8F85">图片加载中，请稍候</text>
+</svg>'''
+        return Response(content=svg.encode(), media_type="image/svg+xml")
 
 
 def robust_json_parse(raw_text):
@@ -150,26 +178,7 @@ async def analyze_text(text: str = Form(...)):
 
     except Exception as e:
         err_msg = str(e)
-        return [{
-            "pattern_type": "大模型响应异常",
-            "confidence": "Error",
-            "colors": ["#5C1E16", "#D4A373", "#7BA7A0", "#1A1A2E"],
-            "color_ratios": [35, 30, 20, 15],
-            "edge_base64": "",
-            "img_id": "Error",
-            "material": {"zh": "错误", "en": "Error"},
-            "craft": {"zh": "错误", "en": "Error"},
-            "dynamic_details": {
-                "zh": {
-                    "name": "模型解析失败",
-                    "era": "请求中断",
-                    "meaning": "请重试。",
-                    "history": f"报错信息：{err_msg}",
-                    "usage": "系统故障",
-                    "cross": ""
-                }
-            }
-        }]
+        return JSONResponse(status_code=500, content={"detail": f"大模型调用失败：{err_msg}"})
 
 
 @app.post("/api/analyze")
@@ -232,7 +241,12 @@ async def analyze_pattern(file: UploadFile = File(...)):
     except Exception as e:
         predicted_name = "大模型响应异常"
         conf_score = "0.00%"
-        dynamic_details = {"zh": {"name": "解析失败", "history": f"异常详情：{str(e)}"}}
+        dynamic_details = {
+            "zh": {"name": "解析失败", "era": "--", "meaning": "--", "history": f"异常详情：{str(e)}", "usage": "--", "cross": "--"},
+            "en": {"name": "Parse Failed", "era": "--", "meaning": "--", "history": str(e), "usage": "--", "cross": "--"},
+            "semantics": {},
+            "evolution": []
+        }
 
     # ===============================
     # 以下为 OpenCV 与 K-Means 提取算法
