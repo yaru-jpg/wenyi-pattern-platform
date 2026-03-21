@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>多模态纹样识别与跨文化解读平台</title>
+<title>纹谱 - 多模态纹样识别与跨文化解读平台</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
@@ -64,6 +64,7 @@ h2 {
   margin-bottom: 16px;
   color: var(--deep-zhu);
   padding-bottom: 10px;
+  border-bottom: none;
   position: relative;
 }
 h2::after {
@@ -793,7 +794,7 @@ input[type="text"]:focus, textarea:focus {
                     </div>
                     <div style="text-align: right; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; display: flex; align-items: center; justify-content: flex-end; gap: 16px;">
                         <span id="res-status" data-i18n="trans_status">等待数据输入</span>
-                        <button class="btn-primary" id="trigger-upload-btn"><i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">提交解析</span></button>
+                        <button class="btn-primary" id="trigger-upload-btn"><i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit" id="submit-btn-text">提交解析</span></button>
                     </div>
                 </div>
             </div>
@@ -938,9 +939,13 @@ input[type="text"]:focus, textarea:focus {
 
 <script>
 // ===== 后端 API 地址配置 =====
-// 本地开发时使用 http://127.0.0.1:8000
-// 部署后请将此处替换为您的云服务器地址，例如 https://your-server.com
-const API_BASE = 'http://127.0.0.1:8000';
+// 自动判断：若在 Railway 后端托管则用相对路径，若在 GitHub Pages 静态托管则用完整地址
+const RAILWAY_URL = 'https://web-production-b6448.up.railway.app';
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? ''  // 本地开发：相对路径
+    : (location.hostname.includes('railway.app') || location.hostname.includes('up.railway.app'))
+        ? ''  // Railway 托管：相对路径
+        : RAILWAY_URL;  // GitHub Pages 或其他静态托管：指向 Railway
 
 const dict = {
     zh: {
@@ -1108,8 +1113,9 @@ function quickAnalyze(patternName) {
         switchMainPage('trans');
         statusEl.innerHTML = origText;
     }).catch(err => {
-        statusEl.innerHTML = '<span style="color:red;">加载失败, 请重试</span>';
-        setTimeout(() => statusEl.innerHTML = origText, 3000);
+        const errMsg = err.message || '加载失败';
+        statusEl.innerHTML = `<span style="color:var(--zhu);">${errMsg}，请重试</span>`;
+        setTimeout(() => statusEl.innerHTML = origText, 5000);
     });
 }
 
@@ -1201,13 +1207,37 @@ document.getElementById('trigger-upload-btn').addEventListener('click', () => {
     }
 });
 
+// 带超时的 fetch 封装（默认 55 秒，大模型调用较慢）
+async function fetchWithTimeout(url, options, timeoutMs = 55000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timer);
+        return response;
+    } catch (err) {
+        clearTimeout(timer);
+        if (err.name === 'AbortError') throw new Error('请求超时，大模型响应过慢，请稍后重试');
+        throw err;
+    }
+}
+
+// 设置加载状态的统一方法
+function setLoadingStatus(msg, isError = false) {
+    const el1 = document.getElementById('res-status');
+    const el2 = document.getElementById('home-res-status');
+    const style = isError ? 'color:var(--zhu);font-weight:600;' : 'color:var(--smoke);font-weight:600;';
+    [el1, el2].forEach(el => { if(el) { el.style = style; el.innerText = msg; } });
+}
+
 async function processAnalysis(file) {
-    document.getElementById('res-status').innerText = currentLang === 'zh' ? '正在调用视觉大模型构建档案...' : 'Retrieving & Processing...';
+    setLoadingStatus(currentLang === 'zh' ? '正在调用视觉大模型构建档案...' : 'Retrieving & Processing...');
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-        const response = await fetch(`${API_BASE}/api/analyze`, { method: 'POST', body: formData });
+        const response = await fetchWithTimeout(`${API_BASE}/api/analyze`, { method: 'POST', body: formData });
+        if (!response.ok) throw new Error(`服务器返回 ${response.status}，请检查 Railway 部署状态`);
         currentResult = await response.json();
 
         updateDynamicContentLanguage();
@@ -1240,19 +1270,21 @@ async function processAnalysis(file) {
         setTimeout(renderCharts, 150);
         setTimeout(renderSemantic, 150);
     } catch (err) {
-        document.getElementById('res-status').innerText = 'API连接异常';
+        const msg = err.message || 'API连接异常';
+        setLoadingStatus(msg, true);
         throw err;
     }
 }
 
 // 支持精准匹配（隐藏多选项）与推测匹配的文本接口
 async function processTextAnalysis(text, isExactMatch = false) {
-    document.getElementById('res-status').innerText = currentLang === 'zh' ? '大模型正在推理可能的纹样...' : 'Inferring...';
+    setLoadingStatus(currentLang === 'zh' ? '大模型正在推理，约需 10~30 秒...' : 'AI Inferring, ~10-30s...');
     const formData = new FormData();
     formData.append('text', text);
 
     try {
-        const response = await fetch(`${API_BASE}/api/analyze_text`, { method: 'POST', body: formData });
+        const response = await fetchWithTimeout(`${API_BASE}/api/analyze_text`, { method: 'POST', body: formData });
+        if (!response.ok) throw new Error(`服务器返回 ${response.status}，请检查 Railway 部署状态`);
         textResultArray = await response.json();
 
         isTextMode = true;
@@ -1277,7 +1309,8 @@ async function processTextAnalysis(text, isExactMatch = false) {
 
         switchTextResult(0, isExactMatch ? null : document.getElementById('text-result-buttons').firstChild, isExactMatch);
     } catch (err) {
-        document.getElementById('res-status').innerText = 'API连接异常';
+        const msg = err.message || 'API连接异常';
+        setLoadingStatus(msg, true);
         throw err;
     }
 }
@@ -1505,6 +1538,13 @@ function renderSemantic() {
     });
     semChart.resize();
 }
+
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 900) {
+        document.getElementById('nav-hamburger')?.classList.remove('open');
+        document.getElementById('nav-links-menu')?.classList.remove('open');
+    }
+});
 </script>
 </body>
 </html>
