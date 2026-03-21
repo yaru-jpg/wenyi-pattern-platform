@@ -14,8 +14,7 @@ from sklearn.cluster import KMeans
 import dashscope
 
 # ==========================================
-# 1. 阿里云大模型 API KEY (安全模式：从环境变量读取)
-# 绝不将真实的 Key 暴露在代码中上传至 GitHub！
+# 1. 阿里云大模型 API KEY (安全模式)
 # ==========================================
 dashscope.api_key = os.environ.get("DASHSCOPE_API_KEY", "")
 
@@ -27,6 +26,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 def robust_json_parse(raw_text):
     """防弹JSON解析器"""
@@ -69,7 +69,7 @@ def robust_json_parse(raw_text):
 
 @app.post("/api/analyze_text")
 async def analyze_text(text: str = Form(...)):
-    """文本推理接口：使用对纯文本支持极好且 JSON 格式遵循度极高的 qwen-plus 模型"""
+    """文本推理接口"""
     prompt = (
         f"你是一位中国古典纹样专家。用户提供了一段描述：\"{text}\"。\n"
         "请提取关键词，推理出最符合描述的 2 到 3 种传统纹样。\n"
@@ -92,9 +92,8 @@ async def analyze_text(text: str = Form(...)):
     )
 
     try:
-        # 校验环境变量是否成功读取
         if not dashscope.api_key:
-            raise ValueError("未检测到 API KEY，请检查环境变量配置。")
+            raise ValueError("未检测到 API KEY。")
 
         response = dashscope.Generation.call(
             model='qwen-plus',
@@ -109,7 +108,7 @@ async def analyze_text(text: str = Form(...)):
         ai_data_list = robust_json_parse(raw_text)
 
         if not ai_data_list or not isinstance(ai_data_list, list):
-            raise ValueError(f"模型返回格式错乱，原话为：{raw_text[:100]}...")
+            raise ValueError("模型返回格式错乱。")
 
         results = []
         for item in ai_data_list:
@@ -129,8 +128,6 @@ async def analyze_text(text: str = Form(...)):
 
     except Exception as e:
         err_msg = str(e)
-        traceback.print_exc()
-        # 若出现异常，直接把原因呈现在前端卡片上，方便排查
         return [{
             "pattern_type": "大模型响应异常",
             "confidence": "Error",
@@ -144,8 +141,8 @@ async def analyze_text(text: str = Form(...)):
                 "zh": {
                     "name": "模型解析失败",
                     "era": "请求中断",
-                    "meaning": "请重试或检查 API 状态。",
-                    "history": f"异常诊断详细信息：{err_msg}",
+                    "meaning": "请重试。",
+                    "history": f"报错信息：{err_msg}",
                     "usage": "系统故障",
                     "cross": ""
                 }
@@ -155,20 +152,22 @@ async def analyze_text(text: str = Form(...)):
 
 @app.post("/api/analyze")
 async def analyze_pattern(file: UploadFile = File(...)):
-    """处理图像的接口（视觉多模态模型）"""
+    """处理图像的接口（防爆内存保护版）"""
     contents = await file.read()
     img_hash = int(hashlib.md5(contents).hexdigest()[:8], 16)
 
     try:
+        # 【救命代码】：拿到图片的第一时间，强制将其压缩到 800px 以内。
+        # 这样无论上传 4K 还是 8K 的原图，都不会导致服务器内存溢出被击杀。
         img_pil = Image.open(io.BytesIO(contents)).convert('RGB')
-        img_for_ai = img_pil.copy()
-        img_for_ai.thumbnail((1600, 1600))
+        img_pil.thumbnail((800, 800), Image.Resampling.LANCZOS)
+
         buffered_ai = io.BytesIO()
-        img_for_ai.save(buffered_ai, format="JPEG", quality=98)
+        img_pil.save(buffered_ai, format="JPEG", quality=85)
         img_base64 = base64.b64encode(buffered_ai.getvalue()).decode("utf-8")
         image_data = "data:image/jpeg;base64," + img_base64
     except Exception as e:
-        return {"pattern_type": "图片读取异常", "dynamic_details": {}}
+        return {"pattern_type": "图片处理失败，请换张图片", "dynamic_details": {"zh": {"history": str(e)}}}
 
     prompt = (
         "你是一位中国古典纹样鉴定专家。请极其精准地识别图片中的传统纹样。\n"
@@ -178,8 +177,8 @@ async def analyze_pattern(file: UploadFile = File(...)):
         "{\n"
         '  "pattern_name": "真实名称",\n'
         '  "details": {\n'
-        '    "zh": {"name": "真实名称", "era": "年代范围", "meaning": "寓意", "history": "历史典故", "usage": "场景", "cross": "跨文化对照"},\n'
-        '    "en": {"name": "Name", "era": "Era", "meaning": "Meaning", "history": "History", "usage": "Usage", "cross": "Cross-cultural"},\n'
+        '    "zh": {"name": "真实名称", "era": "年代", "meaning": "寓意", "history": "历史典故", "usage": "场景", "cross": "跨文化"},\n'
+        '    "en": {"name": "Name", "era": "Era", "meaning": "Meaning", "history": "History", "usage": "Usage", "cross": "Cross"},\n'
         '    "semantics": {"基本信息": ["年代"], "工艺": ["工艺"], "空间": ["地点"], "寓意": ["寓意1"]},\n'
         '    "evolution": [\n'
         '      {"era": {"zh": "起源", "en": "Origin"}, "desc": {"zh": "特征", "en": "Features"}, "keyword": "key"}\n'
@@ -191,69 +190,73 @@ async def analyze_pattern(file: UploadFile = File(...)):
     messages = [{'role': 'user', 'content': [{'image': image_data}, {'text': prompt}]}]
 
     try:
-        # 校验环境变量是否成功读取
         if not dashscope.api_key:
-            raise ValueError("未检测到 API KEY，请检查环境变量配置。")
+            raise ValueError("未检测到 API KEY")
 
         response = dashscope.MultiModalConversation.call(model='qwen-vl-plus', messages=messages)
         if response.status_code != 200:
-            raise ValueError(f"API请求被拒: {response.message}")
+            raise ValueError(f"大模型报错: {response.message}")
 
         raw_text = response.output.choices[0].message.content[0]['text']
         ai_data = robust_json_parse(raw_text)
 
         if ai_data is None:
-            raise ValueError(f"模型格式错乱，原话为：{raw_text[:100]}...")
+            raise ValueError("大模型返回格式错乱。")
 
         predicted_name = ai_data.get("pattern_name", "未知纹样")
         dynamic_details = ai_data.get("details", {})
         conf_score = "98.50%"
 
     except Exception as e:
-        err_msg = str(e)
-        traceback.print_exc()
         predicted_name = "大模型响应异常"
         conf_score = "0.00%"
-        dynamic_details = {
-            "zh": {
-                "name": "解析失败",
-                "history": f"异常诊断详细信息：{err_msg}"
-            }
-        }
+        dynamic_details = {"zh": {"name": "解析失败", "history": f"异常详情：{str(e)}"}}
 
-    img_rgb = np.array(img_pil)
-    img_cv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+    # ===============================
+    # 以下为 OpenCV 与 K-Means 提取算法
+    # ===============================
+    try:
+        # 此时的 img_pil 已经被压缩到了安全尺寸，np.array() 再也不会卡死了
+        img_rgb = np.array(img_pil)
+        img_cv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
 
-    resized_kmeans = cv2.resize(img_rgb, (100, 100), interpolation=cv2.INTER_AREA)
-    pixels = resized_kmeans.reshape(-1, 3)
-    kmeans = KMeans(n_clusters=4, random_state=42, n_init=3).fit(pixels)
-    colors = kmeans.cluster_centers_.astype(int)
-    labels = kmeans.labels_
-    counts = np.bincount(labels)
-    ratios = [int(c / len(labels) * 100) for c in counts]
+        resized_kmeans = cv2.resize(img_rgb, (100, 100), interpolation=cv2.INTER_AREA)
+        pixels = resized_kmeans.reshape(-1, 3)
+        kmeans = KMeans(n_clusters=4, random_state=42, n_init=3).fit(pixels)
+        colors = kmeans.cluster_centers_.astype(int)
+        labels = kmeans.labels_
+        counts = np.bincount(labels)
+        ratios = [int(c / len(labels) * 100) for c in counts]
 
-    sorted_indices = np.argsort(ratios)[::-1]
-    sorted_colors = colors[sorted_indices]
-    sorted_ratios = [ratios[i] for i in sorted_indices]
+        sorted_indices = np.argsort(ratios)[::-1]
+        sorted_colors = colors[sorted_indices]
+        sorted_ratios = [ratios[i] for i in sorted_indices]
 
-    hex_colors = ["#{:02x}{:02x}{:02x}".format(c[0], c[1], c[2]) for c in sorted_colors]
-    hsv_colors = [cv2.cvtColor(np.uint8([[c]]), cv2.COLOR_RGB2HSV)[0][0] for c in sorted_colors]
-    avg_s, avg_v, avg_h = np.mean([c[1] for c in hsv_colors]), np.mean([c[2] for c in hsv_colors]), np.mean([c[0] for c in hsv_colors])
+        hex_colors = ["#{:02x}{:02x}{:02x}".format(c[0], c[1], c[2]) for c in sorted_colors]
+        hsv_colors = [cv2.cvtColor(np.uint8([[c]]), cv2.COLOR_RGB2HSV)[0][0] for c in sorted_colors]
+        avg_s, avg_v, avg_h = np.mean([c[1] for c in hsv_colors]), np.mean([c[2] for c in hsv_colors]), np.mean(
+            [c[0] for c in hsv_colors])
 
-    if avg_s < 60 and avg_v < 150:
-        mat_zh, mat_en, craft_zh, craft_en = "石材/青铜", "Stone/Bronze", "雕刻/铸造", "Carving/Casting"
-    elif avg_v > 180 and 90 < avg_h < 130 and avg_s > 40:
-        mat_zh, mat_en, craft_zh, craft_en = "陶瓷(青花)", "Ceramic", "窑烧工艺", "Kiln Firing"
-    elif avg_s > 100 and avg_v > 100:
-        mat_zh, mat_en, craft_zh, craft_en = "丝绸/织物", "Silk/Fabric", "刺绣/织锦", "Embroidery"
-    else:
-        mat_zh, mat_en, craft_zh, craft_en = "木材/竹器", "Wood/Bamboo", "木雕/漆器", "Wood Carving"
+        if avg_s < 60 and avg_v < 150:
+            mat_zh, mat_en, craft_zh, craft_en = "石材/青铜", "Stone/Bronze", "雕刻/铸造", "Carving/Casting"
+        elif avg_v > 180 and 90 < avg_h < 130 and avg_s > 40:
+            mat_zh, mat_en, craft_zh, craft_en = "陶瓷(青花)", "Ceramic", "窑烧工艺", "Kiln Firing"
+        elif avg_s > 100 and avg_v > 100:
+            mat_zh, mat_en, craft_zh, craft_en = "丝绸/织物", "Silk/Fabric", "刺绣/织锦", "Embroidery"
+        else:
+            mat_zh, mat_en, craft_zh, craft_en = "木材/竹器", "Wood/Bamboo", "木雕/漆器", "Wood Carving"
 
-    img_edge = cv2.resize(img_cv, (600, int(600 * img_cv.shape[0] / img_cv.shape[1])))
-    gray = cv2.cvtColor(img_edge, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(cv2.GaussianBlur(gray, (5, 5), 0), 50, 150)
-    _, buffer = cv2.imencode('.jpg', cv2.bitwise_not(edges), [int(cv2.IMWRITE_JPEG_QUALITY), 60])
-    edge_base64 = base64.b64encode(buffer).decode('utf-8')
+        img_edge = cv2.resize(img_cv, (600, int(600 * img_cv.shape[0] / img_cv.shape[1])))
+        gray = cv2.cvtColor(img_edge, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(cv2.GaussianBlur(gray, (5, 5), 0), 50, 150)
+        _, buffer = cv2.imencode('.jpg', cv2.bitwise_not(edges), [int(cv2.IMWRITE_JPEG_QUALITY), 60])
+        edge_base64 = base64.b64encode(buffer).decode('utf-8')
+    except Exception as e:
+        # 万一遇到服务端极端断流，给一个优雅的默认值，保证网页不白屏崩溃
+        hex_colors = ["#C0392B", "#D4A373", "#7BA7A0", "#1A1A2E"]
+        sorted_ratios = [40, 30, 20, 10]
+        edge_base64 = ""
+        mat_zh, mat_en, craft_zh, craft_en = "图像运算故障", "Error", "服务器降级", "Error"
 
     return {
         "pattern_type": predicted_name, "confidence": conf_score,
@@ -263,8 +266,9 @@ async def analyze_pattern(file: UploadFile = File(...)):
         "dynamic_details": dynamic_details
     }
 
+
 if __name__ == "__main__":
     import uvicorn
-    # Railway 云端部署必须使用 0.0.0.0 和动态端口
+
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
