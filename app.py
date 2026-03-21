@@ -6,7 +6,7 @@ import json
 import re
 import io
 import base64
-import uuid
+import traceback
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,10 +14,8 @@ from sklearn.cluster import KMeans
 import dashscope
 
 # ==========================================
-# 1. 配置阿里通义千问大模型 API KEY
-# 从环境变量读取，请勿将 Key 硬编码后上传至 GitHub
-# 本地运行：在终端执行 set DASHSCOPE_API_KEY=sk-xxxx (Windows)
-#                    或 export DASHSCOPE_API_KEY=sk-xxxx (Linux/Mac)
+# 1. 阿里云大模型 API KEY (安全模式：从环境变量读取)
+# 绝不将真实的 Key 暴露在代码中上传至 GitHub！
 # ==========================================
 dashscope.api_key = os.environ.get("DASHSCOPE_API_KEY", "")
 
@@ -30,12 +28,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 def robust_json_parse(raw_text):
-    """升级版防弹解析器：同时支持解析对象 {} 和数组 []"""
+    """防弹JSON解析器"""
     try:
         text = raw_text.strip()
-        tick_str = chr(96) + chr(96) + chr(96)
+        tick_str = chr(96) * 3
         text = text.replace(tick_str + 'json', '').replace(tick_str, '')
 
         start_obj = text.find('{')
@@ -66,47 +63,53 @@ def robust_json_parse(raw_text):
                             continue
         return None
     except Exception as e:
-        print("解析错误: " + str(e))
+        print("JSON解析核心报错: " + str(e))
         return None
 
 
 @app.post("/api/analyze_text")
 async def analyze_text(text: str = Form(...)):
-    """处理文本推理模式的专属接口"""
+    """文本推理接口：使用对纯文本支持极好且 JSON 格式遵循度极高的 qwen-plus 模型"""
     prompt = (
-        f"你是一位中国古典纹样鉴定专家。用户提供了一段文本描述：\"{text}\"。\n"
+        f"你是一位中国古典纹样专家。用户提供了一段描述：\"{text}\"。\n"
         "请提取关键词，推理出最符合描述的 2 到 3 种传统纹样。\n"
         "【极其重要的警告】\n"
-        "必须且只能输出一个JSON数组！不要客套和Markdown！单项描述不要超过20个字！\n"
-        "数组必须包含2到3个对象，结构如下：\n"
+        "必须且只能输出一个JSON数组！绝对不要输出任何Markdown标记或多余的解释！\n"
+        "必须输出如下结构的JSON数组：\n"
         "[\n"
         "  {\n"
         '    "pattern_name": "推理出的真实名称",\n'
         '    "details": {\n'
-        '      "zh": {"name": "真实名称", "era": "真实年代范围(如:商周至清代)", "meaning": "寓意", "history": "历史典故(100-200字)", "usage": "场景", "cross": "跨文化对照(100-200字)"},\n'
-        '      "en": {"name": "Name", "era": "Era range", "meaning": "Meaning", "history": "History (100-200 words)", "usage": "Usage", "cross": "Cross-cultural (100-200 words)"},\n'
-        '      "semantics": {"基本信息": ["年代"], "工艺": ["工艺"], "空间": ["地点"], "寓意": ["寓意1"], "相关纹样": ["相关1"], "历史人物": ["人物1"], "文化典故": ["典故1"], "艺术作品": ["代表作"]},\n'
+        '      "zh": {"name": "真实名称", "era": "年代范围", "meaning": "寓意", "history": "历史典故", "usage": "场景", "cross": "跨文化对照"},\n'
+        '      "en": {"name": "Name", "era": "Era", "meaning": "Meaning", "history": "History", "usage": "Usage", "cross": "Cross-cultural"},\n'
+        '      "semantics": {"基本信息": ["年代"], "工艺": ["工艺"], "寓意": ["寓意1"]},\n'
         '      "evolution": [\n'
-        '        {"era": {"zh": "起源朝代", "en": "Origin"}, "desc": {"zh": "特征", "en": "Features"}, "keyword": "English keyword"}\n'
+        '        {"era": {"zh": "起源朝代", "en": "Origin"}, "desc": {"zh": "特征", "en": "Features"}, "keyword": "keyword"}\n'
         '      ]\n'
         '    }\n'
-        "  },\n"
-        "  { 纹样2... }\n"
+        "  }\n"
         "]"
     )
 
-    messages = [{'role': 'user', 'content': [{'text': prompt}]}]
-
     try:
-        response = dashscope.MultiModalConversation.call(model='qwen-vl-plus', messages=messages)
-        if response.status_code != 200:
-            raise ValueError("API Error: " + str(response.message))
+        # 校验环境变量是否成功读取
+        if not dashscope.api_key:
+            raise ValueError("未检测到 API KEY，请检查环境变量配置。")
 
-        raw_text = response.output.choices[0].message.content[0]['text']
+        response = dashscope.Generation.call(
+            model='qwen-plus',
+            messages=[{'role': 'user', 'content': prompt}],
+            result_format='message'
+        )
+
+        if response.status_code != 200:
+            raise ValueError(f"API请求被拒: {response.message}")
+
+        raw_text = response.output.choices[0].message.content
         ai_data_list = robust_json_parse(raw_text)
 
         if not ai_data_list or not isinstance(ai_data_list, list):
-            raise ValueError("大模型返回的数据不是数组结构")
+            raise ValueError(f"模型返回格式错乱，原话为：{raw_text[:100]}...")
 
         results = []
         for item in ai_data_list:
@@ -114,23 +117,45 @@ async def analyze_text(text: str = Form(...)):
             results.append({
                 "pattern_type": item.get("pattern_name", "未知纹样"),
                 "confidence": "基于文本推理",
-                "colors": ["#5C1E16", "#D4A373", "#7BA7A0", "#1A1A2E"], # 默认国风色彩池
+                "colors": ["#5C1E16", "#D4A373", "#7BA7A0", "#1A1A2E"],
                 "color_ratios": [35, 30, 20, 15],
                 "edge_base64": "",
                 "img_id": f"PID-{img_hash}",
-                "material": {"zh": "依据描述推理", "en": "Inferred via text"},
-                "craft": {"zh": "依据描述推理", "en": "Inferred via text"},
+                "material": {"zh": "文本推理", "en": "Text Inferred"},
+                "craft": {"zh": "文本推理", "en": "Text Inferred"},
                 "dynamic_details": item.get("details", {})
             })
         return results
+
     except Exception as e:
-        print("文本推理异常: " + str(e))
-        return [{"pattern_type": "文本解析异常，请重试", "dynamic_details": {}}]
+        err_msg = str(e)
+        traceback.print_exc()
+        # 若出现异常，直接把原因呈现在前端卡片上，方便排查
+        return [{
+            "pattern_type": "大模型响应异常",
+            "confidence": "Error",
+            "colors": ["#5C1E16", "#D4A373", "#7BA7A0", "#1A1A2E"],
+            "color_ratios": [35, 30, 20, 15],
+            "edge_base64": "",
+            "img_id": "Error",
+            "material": {"zh": "错误", "en": "Error"},
+            "craft": {"zh": "错误", "en": "Error"},
+            "dynamic_details": {
+                "zh": {
+                    "name": "模型解析失败",
+                    "era": "请求中断",
+                    "meaning": "请重试或检查 API 状态。",
+                    "history": f"异常诊断详细信息：{err_msg}",
+                    "usage": "系统故障",
+                    "cross": ""
+                }
+            }
+        }]
 
 
 @app.post("/api/analyze")
 async def analyze_pattern(file: UploadFile = File(...)):
-    """原有的图像上传解析接口（保持不变）"""
+    """处理图像的接口（视觉多模态模型）"""
     contents = await file.read()
     img_hash = int(hashlib.md5(contents).hexdigest()[:8], 16)
 
@@ -143,24 +168,21 @@ async def analyze_pattern(file: UploadFile = File(...)):
         img_base64 = base64.b64encode(buffered_ai.getvalue()).decode("utf-8")
         image_data = "data:image/jpeg;base64," + img_base64
     except Exception as e:
-        print("图片处理异常: " + str(e))
         return {"pattern_type": "图片读取异常", "dynamic_details": {}}
 
     prompt = (
         "你是一位中国古典纹样鉴定专家。请极其精准地识别图片中的传统纹样。\n"
         "【极其重要的警告】\n"
-        "必须且只能输出一个标准的JSON对象！不要客套！不要Markdown！单项描述不要超过20个字！\n"
+        "必须且只能输出一个标准的JSON对象！不要客套和Markdown！单项描述不要超过20个字！\n"
         "必须严格按照如下结构输出：\n"
         "{\n"
         '  "pattern_name": "真实名称",\n'
         '  "details": {\n'
-        '    "zh": {"name": "真实名称", "era": "真实年代范围(如:商周至清代)", "meaning": "寓意", "history": "历史典故(100-200字)", "usage": "场景", "cross": "跨文化对照(100-200字)"},\n'
-        '    "en": {"name": "Name", "era": "Era range", "meaning": "Meaning", "history": "History (100-200 words)", "usage": "Usage", "cross": "Cross-cultural (100-200 words)"},\n'
-        '    "semantics": {"基本信息": ["年代"], "工艺": ["工艺"], "空间": ["地点"], "寓意": ["寓意1"], "相关纹样": ["相关1"], "历史人物": ["人物1"], "文化典故": ["典故1"], "艺术作品": ["代表作"]},\n'
+        '    "zh": {"name": "真实名称", "era": "年代范围", "meaning": "寓意", "history": "历史典故", "usage": "场景", "cross": "跨文化对照"},\n'
+        '    "en": {"name": "Name", "era": "Era", "meaning": "Meaning", "history": "History", "usage": "Usage", "cross": "Cross-cultural"},\n'
+        '    "semantics": {"基本信息": ["年代"], "工艺": ["工艺"], "空间": ["地点"], "寓意": ["寓意1"]},\n'
         '    "evolution": [\n'
-        '      {"era": {"zh": "起源朝代", "en": "Origin"}, "desc": {"zh": "特征", "en": "Features"}, "keyword": "English keyword"},\n'
-        '      {"era": {"zh": "发展朝代", "en": "Middle"}, "desc": {"zh": "特征", "en": "Features"}, "keyword": "English keyword"},\n'
-        '      {"era": {"zh": "成熟朝代", "en": "Late"}, "desc": {"zh": "特征", "en": "Features"}, "keyword": "English keyword"}\n'
+        '      {"era": {"zh": "起源", "en": "Origin"}, "desc": {"zh": "特征", "en": "Features"}, "keyword": "key"}\n'
         '    ]\n'
         '  }\n'
         "}"
@@ -169,23 +191,35 @@ async def analyze_pattern(file: UploadFile = File(...)):
     messages = [{'role': 'user', 'content': [{'image': image_data}, {'text': prompt}]}]
 
     try:
+        # 校验环境变量是否成功读取
+        if not dashscope.api_key:
+            raise ValueError("未检测到 API KEY，请检查环境变量配置。")
+
         response = dashscope.MultiModalConversation.call(model='qwen-vl-plus', messages=messages)
         if response.status_code != 200:
-            raise ValueError("API Error: " + str(response.message))
+            raise ValueError(f"API请求被拒: {response.message}")
 
         raw_text = response.output.choices[0].message.content[0]['text']
         ai_data = robust_json_parse(raw_text)
 
-        if ai_data is None: raise ValueError("JSON结构损坏")
+        if ai_data is None:
+            raise ValueError(f"模型格式错乱，原话为：{raw_text[:100]}...")
 
         predicted_name = ai_data.get("pattern_name", "未知纹样")
         dynamic_details = ai_data.get("details", {})
         conf_score = "98.50%"
+
     except Exception as e:
-        print("解析异常: " + str(e))
-        predicted_name = "解析异常，请重试"
+        err_msg = str(e)
+        traceback.print_exc()
+        predicted_name = "大模型响应异常"
         conf_score = "0.00%"
-        dynamic_details = {}
+        dynamic_details = {
+            "zh": {
+                "name": "解析失败",
+                "history": f"异常诊断详细信息：{err_msg}"
+            }
+        }
 
     img_rgb = np.array(img_pil)
     img_cv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
@@ -204,8 +238,7 @@ async def analyze_pattern(file: UploadFile = File(...)):
 
     hex_colors = ["#{:02x}{:02x}{:02x}".format(c[0], c[1], c[2]) for c in sorted_colors]
     hsv_colors = [cv2.cvtColor(np.uint8([[c]]), cv2.COLOR_RGB2HSV)[0][0] for c in sorted_colors]
-    avg_s, avg_v, avg_h = np.mean([c[1] for c in hsv_colors]), np.mean([c[2] for c in hsv_colors]), np.mean(
-        [c[0] for c in hsv_colors])
+    avg_s, avg_v, avg_h = np.mean([c[1] for c in hsv_colors]), np.mean([c[2] for c in hsv_colors]), np.mean([c[0] for c in hsv_colors])
 
     if avg_s < 60 and avg_v < 150:
         mat_zh, mat_en, craft_zh, craft_en = "石材/青铜", "Stone/Bronze", "雕刻/铸造", "Carving/Casting"
@@ -230,7 +263,8 @@ async def analyze_pattern(file: UploadFile = File(...)):
         "dynamic_details": dynamic_details
     }
 
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # Railway 云端部署必须使用 0.0.0.0 和动态端口
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
