@@ -10,6 +10,7 @@ import traceback
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sklearn.cluster import KMeans
 import dashscope
 
@@ -26,6 +27,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ==========================================
+# 2. 托管前端页面（根路由直接返回 index.html）
+# ==========================================
+@app.get("/")
+async def serve_index():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
 
 
 def robust_json_parse(raw_text):
