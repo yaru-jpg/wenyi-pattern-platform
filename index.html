@@ -575,48 +575,77 @@ input[type="text"]:focus, textarea:focus {
 @media (max-width: 900px) {
   .top-bar { padding: 6px 20px; }
   .top-bar-left { display: none; }
-  nav { padding: 0 20px; height: 58px; position: relative; }
+  nav { padding: 0 16px; height: 58px; position: sticky; top: 0; z-index: 200; }
   .nav-brand { font-size: 18px; letter-spacing: 2px; }
-  .nav-links { display:none; }
-  .container { padding: 0 20px; margin: 24px auto; }
+  .nav-links { display: none; position: fixed; top: 58px; left: 0; right: 0; background: linear-gradient(105deg, #7A1F16 0%, #4A130D 100%); flex-direction: column; padding: 12px 0; z-index: 199; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .nav-links.open { display: flex; }
+  .nav-links button { padding: 14px 24px; border-bottom: 1px solid rgba(200,151,58,0.15); width: 100%; text-align: left; }
+  .hamburger { display: flex !important; }
+  .container { padding: 0 16px; margin: 20px auto; }
   .grid-2 { grid-template-columns: 1fr; gap: 20px; }
   #page-home > div:first-child { flex-direction: column; align-items: flex-start; gap: 16px; }
   .card-main-img { width: 100%; max-width: 420px; height: 260px; }
   .evo-display { grid-template-columns: 1fr; gap: 16px; }
   .evo-img-box { height: 200px; }
-  .timeline-container { margin: 0 10px 20px 10px; overflow-x: auto; padding-bottom: 8px; }
+  .timeline-container { margin: 0 4px 20px 4px; overflow-x: auto; padding-bottom: 8px; justify-content: flex-start; gap: 0; }
+  .timeline-dot-wrapper { min-width: 72px; flex-shrink: 0; }
   .tab-nav { flex-wrap: wrap; padding: 0 4px; }
   .tab-btn { padding: 9px 14px; font-size: 13px; }
   #chart-semantic { height: 420px !important; }
+  .top-bar-right { gap: 8px; }
 }
 
 @media (max-width: 600px) {
   .top-bar { padding: 5px 12px; }
   .tts-btn span { display: none; }
   nav { padding: 0 12px; height: 54px; }
+  .nav-links { top: 54px; }
   .nav-brand { font-size: 16px; letter-spacing: 1px; }
   .nav-brand::before { display: none; }
-  .container { padding: 0 12px; margin: 16px auto; }
-  h1 { font-size: 24px; letter-spacing: 1px; }
-  h2 { font-size: 18px; }
+  .container { padding: 0 10px; margin: 12px auto; }
+  h1 { font-size: 22px; letter-spacing: 1px; }
+  h2 { font-size: 17px; }
   h3 { font-size: 15px; }
-  .panel { padding: 16px 14px; }
-  .card-main-img { height: 220px; max-width: 100%; }
-  .card-top-section { margin-bottom: 20px; }
-  .btn-primary, .btn-secondary { padding: 10px 16px; font-size: 12px; }
-  .upload-area-box { height: 200px; }
+  .panel { padding: 14px 12px; }
+  .card-main-img { height: 200px; max-width: 100%; }
+  .card-top-section { margin-bottom: 16px; }
+  .btn-primary, .btn-secondary { padding: 10px 14px; font-size: 12px; }
+  .upload-area-box { height: 180px; }
   #tab-content-info-story .grid-2 { grid-template-columns: 1fr; }
-  .data-table th, .data-table td { padding: 10px 10px; font-size: 13px; }
-  .color-swatch-large { width: 80px; margin-right: 8px; }
+  .data-table th, .data-table td { padding: 9px 8px; font-size: 12px; }
+  .color-swatch-large { width: 72px; margin-right: 6px; }
   .timeline-label { font-size: 11px; }
-  .timeline-dot-wrapper { width: 64px; }
-  .chart-container { height: 280px; }
-  #chart-semantic { height: 360px !important; }
+  .timeline-dot-wrapper { min-width: 60px; }
+  .chart-container { height: 260px; }
+  #chart-semantic { height: 340px !important; }
   .tab-btn { padding: 8px 10px; font-size: 12px; }
   #tab-content-maplayer-color .grid-2 { grid-template-columns: 1fr; }
   #page-home > div:first-child .btn-primary { width: 100%; justify-content: center; }
   #page-trans > div:first-child { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .lang-btn { max-width: 110px; font-size: 11px; }
 }
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  margin-left: 8px;
+}
+.hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 </style>
 </head>
 <body>
@@ -631,6 +660,8 @@ input[type="text"]:focus, textarea:focus {
             <option value="en">English</option>
             <option value="fr">Français</option>
             <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="ar">العربية</option>
         </select>
         <button class="tts-btn" onclick="toggleTTS()">
             <i id="tts-icon" class="fas fa-volume-up"></i> <span data-i18n="tts_btn" id="tts-text">开启语音播报</span>
@@ -641,11 +672,14 @@ input[type="text"]:focus, textarea:focus {
 <nav>
     <div class="nav-brand" data-i18n="nav_brand">纹谱</div>
     <div class="nav-links" id="nav-links-menu">
-        <button onclick="switchMainPage('home')" id="nav-home" class="active"><i class="fas fa-home"></i> <span data-i18n="nav_home">首页</span></button>
-        <button onclick="switchMainPage('trans')" id="nav-trans"><i class="fas fa-project-diagram"></i> <span data-i18n="nav_trans">纹样转译</span></button>
-        <button onclick="switchMainPage('collect')" id="nav-collect"><i class="fas fa-bookmark"></i> <span data-i18n="nav_collect">我的收藏</span></button>
-        <button onclick="switchMainPage('help')" id="nav-help"><i class="fas fa-question-circle"></i> <span data-i18n="nav_help">帮助中心</span></button>
+        <button onclick="switchMainPage('home'); closeMenu()" id="nav-home" class="active"><i class="fas fa-home"></i> <span data-i18n="nav_home">首页</span></button>
+        <button onclick="switchMainPage('trans'); closeMenu()" id="nav-trans"><i class="fas fa-project-diagram"></i> <span data-i18n="nav_trans">纹样转译</span></button>
+        <button onclick="switchMainPage('collect'); closeMenu()" id="nav-collect"><i class="fas fa-bookmark"></i> <span data-i18n="nav_collect">我的收藏</span></button>
+        <button onclick="switchMainPage('help'); closeMenu()" id="nav-help"><i class="fas fa-question-circle"></i> <span data-i18n="nav_help">帮助中心</span></button>
     </div>
+    <button class="hamburger" id="nav-hamburger" onclick="toggleMenu()" aria-label="菜单">
+        <span></span><span></span><span></span>
+    </button>
 </nav>
 
 <div class="container">
@@ -963,22 +997,94 @@ const dict = {
         help_t: "常见问题", help_1: "1. 上传图片后，系统将自动进行图像解析与结构提取。", help_2: "2. 转译结果的准确度受图片光线与清晰度影响。"
     },
     en: {
-        sys_date: "System Date: 2026-03-15", tts_btn: "Enable Voice", nav_brand: "Wenyi V1.0",
+        sys_date: "System Date: 2026-03-15", tts_btn: "Enable Voice", nav_brand: "WenPu",
         nav_home: "Home", nav_trans: "Translate", nav_collect: "Collections", nav_help: "Help",
         home_title: "Multimodal Symbol Translation", home_btn: "Quick Translation",
-        trans_title: "Multimodal Translation", trans_reset: "Reset Translation", trans_img_in: "Image Input",
-        trans_img_hint: "Click to open device album", trans_txt_in: "Text Input", trans_txt_hint: "Describe visual features...",
-        trans_status: "Awaiting Input", trans_submit: "Submit Analysis", tab_card: "Pattern Card", tab_map: "Pattern Map",
+        trans_title: "Multimodal Translation", trans_reset: "Reset", trans_img_in: "Image Input",
+        trans_img_hint: "Click to open device album", trans_txt_in: "Text Input", trans_txt_hint: "Describe visual features, e.g. circular radiating center like a lotus...",
+        trans_status: "Awaiting Input", trans_submit: "Submit", tab_card: "Pattern Card", tab_map: "Pattern Map",
         tab_info_b: "Basic Information", tab_info_s: "Pattern Story",
         th_name: "Name", th_era: "Era", th_color: "Colors",
         sh_mean: "Meaning", sh_hist: "History", sh_use: "Usage", sh_cross: "Cross-Cultural",
         ml_line: "Line Structure", ml_color: "Color Composition", ml_evo: "Evolution Timeline", ml_sem: "Semantic Network",
         ml_line_t: "Vector Contour Layers", ml_line_d: "Hover to highlight main and sub-textures.",
         ml_color_t1: "Dynamic Ratio Chart", ml_color_t2: "Palette Extraction", ml_color_btn: "Export", ml_color_t3: "Heatmap Distribution",
-        ml_evo_t: "Historical Evolution Trajectory", ml_evo_d: "Click timeline nodes below to view morphological changes across eras.",
+        ml_evo_t: "Historical Evolution Trajectory", ml_evo_d: "Click timeline nodes to view morphological changes across eras.",
         ml_sem_t: "Force-Directed Semantic Graph", ml_sem_d: "Node size indicates correlation strength.",
         col_time: "Time", col_name: "Name", col_op: "Action", col_empty: "No collections yet. Click the star on a pattern card.",
         help_t: "FAQ", help_1: "1. Auto-parsing upon upload.", help_2: "2. Accuracy depends on image clarity."
+    },
+    fr: {
+        sys_date: "Date: 2026-03-15", tts_btn: "Activer la voix", nav_brand: "WenPu",
+        nav_home: "Accueil", nav_trans: "Traduction", nav_collect: "Collections", nav_help: "Aide",
+        home_title: "Traduction de motifs multimodaux", home_btn: "Analyse rapide",
+        trans_title: "Traduction de motifs", trans_reset: "Réinitialiser", trans_img_in: "Image",
+        trans_img_hint: "Cliquez pour ouvrir l'album", trans_txt_in: "Texte", trans_txt_hint: "Décrivez les caractéristiques visuelles...",
+        trans_status: "En attente", trans_submit: "Analyser", tab_card: "Fiche motif", tab_map: "Carte motif",
+        tab_info_b: "Informations de base", tab_info_s: "Histoire du motif",
+        th_name: "Nom", th_era: "Époque", th_color: "Couleurs",
+        sh_mean: "Signification", sh_hist: "Histoire", sh_use: "Utilisation", sh_cross: "Interculturel",
+        ml_line: "Structure linéaire", ml_color: "Composition colorée", ml_evo: "Chronologie", ml_sem: "Réseau sémantique",
+        ml_line_t: "Couches de contours vectoriels", ml_line_d: "Survolez pour mettre en évidence les textures.",
+        ml_color_t1: "Graphique dynamique", ml_color_t2: "Extraction de palette", ml_color_btn: "Exporter", ml_color_t3: "Carte thermique",
+        ml_evo_t: "Trajectoire d'évolution historique", ml_evo_d: "Cliquez sur les nœuds pour voir l'évolution.",
+        ml_sem_t: "Graphe sémantique", ml_sem_d: "La taille des nœuds indique la force de corrélation.",
+        col_time: "Date", col_name: "Nom", col_op: "Action", col_empty: "Aucune collection. Cliquez sur l'étoile d'une fiche.",
+        help_t: "FAQ", help_1: "1. Analyse automatique après le chargement.", help_2: "2. La précision dépend de la clarté de l'image."
+    },
+    ja: {
+        sys_date: "日付: 2026-03-15", tts_btn: "音声をオン", nav_brand: "紋譜",
+        nav_home: "ホーム", nav_trans: "翻訳", nav_collect: "コレクション", nav_help: "ヘルプ",
+        home_title: "マルチモーダル文様翻訳", home_btn: "クイック解析",
+        trans_title: "文様翻訳", trans_reset: "リセット", trans_img_in: "画像入力",
+        trans_img_hint: "クリックしてアルバムを開く", trans_txt_in: "テキスト入力", trans_txt_hint: "視覚的特徴を説明してください...",
+        trans_status: "入力待ち", trans_submit: "解析する", tab_card: "文様カード", tab_map: "文様マップ",
+        tab_info_b: "基本情報", tab_info_s: "文様の物語",
+        th_name: "名称", th_era: "年代", th_color: "色彩",
+        sh_mean: "意味", sh_hist: "歴史", sh_use: "用途", sh_cross: "異文化比較",
+        ml_line: "線構造", ml_color: "色構成", ml_evo: "変遷タイムライン", ml_sem: "意味ネットワーク",
+        ml_line_t: "ベクターアウトラインレイヤー", ml_line_d: "ホバーで主紋・副紋をハイライト。",
+        ml_color_t1: "動的比率チャート", ml_color_t2: "パレット抽出", ml_color_btn: "エクスポート", ml_color_t3: "ヒートマップ",
+        ml_evo_t: "歴史的変遷軌跡", ml_evo_d: "タイムラインのノードをクリックして変遷を確認。",
+        ml_sem_t: "意味力指向グラフ", ml_sem_d: "ノードの大きさは相関の強さを示します。",
+        col_time: "日時", col_name: "名称", col_op: "操作", col_empty: "コレクションなし。カードの星をクリック。",
+        help_t: "FAQ", help_1: "1. アップロード後に自動解析。", help_2: "2. 精度は画像の明瞭さに依存。"
+    },
+    ko: {
+        sys_date: "날짜: 2026-03-15", tts_btn: "음성 켜기", nav_brand: "문보",
+        nav_home: "홈", nav_trans: "번역", nav_collect: "컬렉션", nav_help: "도움말",
+        home_title: "멀티모달 문양 번역", home_btn: "빠른 분석",
+        trans_title: "문양 번역", trans_reset: "초기화", trans_img_in: "이미지 입력",
+        trans_img_hint: "클릭하여 앨범 열기", trans_txt_in: "텍스트 입력", trans_txt_hint: "시각적 특징을 설명하세요...",
+        trans_status: "입력 대기 중", trans_submit: "분석", tab_card: "문양 카드", tab_map: "문양 지도",
+        tab_info_b: "기본 정보", tab_info_s: "문양 이야기",
+        th_name: "이름", th_era: "시대", th_color: "색상",
+        sh_mean: "의미", sh_hist: "역사", sh_use: "용도", sh_cross: "문화 간 비교",
+        ml_line: "선 구조", ml_color: "색 구성", ml_evo: "변천 타임라인", ml_sem: "의미 네트워크",
+        ml_line_t: "벡터 윤곽 레이어", ml_line_d: "마우스 오버로 문양 강조.",
+        ml_color_t1: "동적 비율 차트", ml_color_t2: "팔레트 추출", ml_color_btn: "내보내기", ml_color_t3: "히트맵",
+        ml_evo_t: "역사적 변천 궤적", ml_evo_d: "타임라인 노드를 클릭하여 변천 확인.",
+        ml_sem_t: "의미 방향 그래프", ml_sem_d: "노드 크기는 상관 강도를 나타냅니다.",
+        col_time: "시간", col_name: "이름", col_op: "작업", col_empty: "컬렉션 없음. 카드의 별을 클릭하세요.",
+        help_t: "FAQ", help_1: "1. 업로드 후 자동 분석.", help_2: "2. 정확도는 이미지 선명도에 따라 다릅니다."
+    },
+    ar: {
+        sys_date: "التاريخ: 2026-03-15", tts_btn: "تشغيل الصوت", nav_brand: "ون بو",
+        nav_home: "الرئيسية", nav_trans: "ترجمة", nav_collect: "المجموعات", nav_help: "المساعدة",
+        home_title: "ترجمة الأنماط متعددة الوسائط", home_btn: "تحليل سريع",
+        trans_title: "ترجمة الأنماط", trans_reset: "إعادة تعيين", trans_img_in: "إدخال صورة",
+        trans_img_hint: "انقر لفتح الألبوم", trans_txt_in: "إدخال نص", trans_txt_hint: "صف الميزات البصرية...",
+        trans_status: "في انتظار الإدخال", trans_submit: "تحليل", tab_card: "بطاقة النمط", tab_map: "خريطة النمط",
+        tab_info_b: "معلومات أساسية", tab_info_s: "قصة النمط",
+        th_name: "الاسم", th_era: "الحقبة", th_color: "الألوان",
+        sh_mean: "المعنى", sh_hist: "التاريخ", sh_use: "الاستخدام", sh_cross: "المقارنة الثقافية",
+        ml_line: "هيكل الخط", ml_color: "تركيب الألوان", ml_evo: "الجدول الزمني", ml_sem: "الشبكة الدلالية",
+        ml_line_t: "طبقات المخطط المتجه", ml_line_d: "مرر فوق لتمييز الأنسجة.",
+        ml_color_t1: "مخطط النسبة الديناميكي", ml_color_t2: "استخراج اللوحة", ml_color_btn: "تصدير", ml_color_t3: "خريطة الحرارة",
+        ml_evo_t: "مسار التطور التاريخي", ml_evo_d: "انقر على العقد لرؤية التطور.",
+        ml_sem_t: "رسم بياني دلالي", ml_sem_d: "حجم العقدة يشير إلى قوة الارتباط.",
+        col_time: "الوقت", col_name: "الاسم", col_op: "الإجراء", col_empty: "لا توجد مجموعات. انقر على النجمة في البطاقة.",
+        help_t: "الأسئلة الشائعة", help_1: "1. التحليل التلقائي بعد الرفع.", help_2: "2. تعتمد الدقة على وضوح الصورة."
     }
 };
 
@@ -990,23 +1096,32 @@ let isTextMode = false;
 let collections = {};
 
 function changeLanguage() {
-    currentLang = document.getElementById('lang-select').value;
+    const newLang = document.getElementById('lang-select').value;
+    currentLang = newLang;
+    // 处理阿拉伯语 RTL
+    document.body.dir = (newLang === 'ar') ? 'rtl' : 'ltr';
+
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        if (dict[currentLang] && dict[currentLang][key]) {
-            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                el.placeholder = dict[currentLang][key];
-            } else {
-                el.innerText = dict[currentLang][key];
-            }
+        const val = dict[currentLang]?.[key] || dict['zh']?.[key];
+        if (!val) return;
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.placeholder = val;
+        } else {
+            el.innerText = val;
         }
     });
+    // 更新 TTS 按钮文字
+    if (!isTTSActive) {
+        document.getElementById('tts-text').innerText = dict[currentLang]?.tts_btn || '开启语音播报';
+    }
     if (currentResult) updateDynamicContentLanguage();
 }
 
 function updateDynamicContentLanguage() {
     if (!currentResult || !currentResult.dynamic_details) return;
     let dDetails = currentResult.dynamic_details;
+    // 按优先级选取当前语言数据：当前语言 > 英文 > 中文
     let localizedDetails = dDetails[currentLang] || dDetails['en'] || dDetails['zh'] || {};
 
     let finalName = localizedDetails.name || currentResult.pattern_type;
@@ -1014,12 +1129,13 @@ function updateDynamicContentLanguage() {
 
     let evoData = dDetails.evolution || [];
     let finalEra = "--";
-    if(evoData && evoData.length > 0) {
-        let eraStart = evoData[0].era[currentLang] || evoData[0].era['en'] || evoData[0].era['zh'] || "";
-        let eraEnd = evoData[evoData.length-1].era[currentLang] || evoData[evoData.length-1].era['en'] || evoData[evoData.length-1].era['zh'] || "";
-        finalEra = eraStart === eraEnd ? eraStart : (currentLang === 'zh' ? `${eraStart} 至 ${eraEnd}` : `${eraStart} to ${eraEnd}`);
+    if (evoData && evoData.length > 0) {
+        const getLang = (obj) => obj[currentLang] || obj['en'] || obj['zh'] || "";
+        let eraStart = getLang(evoData[0].era);
+        let eraEnd = getLang(evoData[evoData.length - 1].era);
+        finalEra = eraStart === eraEnd ? eraStart : `${eraStart} — ${eraEnd}`;
     }
-    if(localizedDetails.era) finalEra = localizedDetails.era;
+    if (localizedDetails.era) finalEra = localizedDetails.era;
 
     document.getElementById('val-era').innerText = finalEra;
     document.getElementById('story-meaning').innerText = localizedDetails.meaning || "--";
@@ -1031,6 +1147,12 @@ function updateDynamicContentLanguage() {
 }
 
 let isTTSActive = false;
+// 语言代码 → Web Speech API locale 映射
+const ttsLangMap = {
+    zh: 'zh-CN', en: 'en-US', fr: 'fr-FR',
+    ja: 'ja-JP', ko: 'ko-KR', ar: 'ar-SA'
+};
+
 function toggleTTS() {
     const icon = document.getElementById('tts-icon');
     const textSpan = document.getElementById('tts-text');
@@ -1038,20 +1160,27 @@ function toggleTTS() {
     if (!isTTSActive) {
         isTTSActive = true;
         icon.className = 'fas fa-stop-circle';
-        textSpan.innerText = currentLang === 'zh' ? '停止播报' : 'Stop';
-        let text = document.querySelector('.page[style*="display: block"]').innerText;
+        textSpan.innerText = currentLang === 'zh' ? '停止播报' : (dict[currentLang]?.tts_btn || 'Stop');
+        let text = document.querySelector('.page[style*="display: block"]')?.innerText || '';
         const utterance = new SpeechSynthesisUtterance(text.replace(/\n+/g, ' '));
-        utterance.lang = currentLang === 'en' ? 'en-US' : 'zh-CN';
+        utterance.lang = ttsLangMap[currentLang] || 'zh-CN';
+        utterance.rate = 0.9;
         utterance.onend = () => {
             isTTSActive = false;
             icon.className = 'fas fa-volume-up';
-            textSpan.innerText = dict[currentLang]['tts_btn'];
+            textSpan.innerText = dict[currentLang]?.tts_btn || '开启语音播报';
         };
+        utterance.onerror = () => {
+            isTTSActive = false;
+            icon.className = 'fas fa-volume-up';
+            textSpan.innerText = dict[currentLang]?.tts_btn || '开启语音播报';
+        };
+        window.speechSynthesis.cancel();
         window.speechSynthesis.speak(utterance);
     } else {
         isTTSActive = false;
         icon.className = 'fas fa-volume-up';
-        textSpan.innerText = dict[currentLang]['tts_btn'];
+        textSpan.innerText = dict[currentLang]?.tts_btn || '开启语音播报';
         window.speechSynthesis.cancel();
     }
 }
@@ -1070,12 +1199,13 @@ function switchMainPage(pageId) {
     }
 }
 
-// 首页两个入口按钮：跳转到纹样转译页对应 tab
+// 首页两个入口按钮：跳转到纹样转译页对应 tab，如有现有结果则先重置
 function goToTransTab(tabId) {
-    switchMainPage('trans');
-    if (!currentResult) {
-        switchTab('input', tabId);
+    if (currentResult) {
+        resetTranslation();
     }
+    switchMainPage('trans');
+    switchTab('input', tabId);
 }
 
 function switchTab(group, tabId) {
@@ -1095,38 +1225,36 @@ function switchTab(group, tabId) {
     }
 }
 
-function switchHomeTab(tabId) {
-    document.getElementById('tab-btn-home-img').classList.remove('active');
-    document.getElementById('tab-btn-home-txt').classList.remove('active');
-    document.getElementById('tab-content-home-img').classList.remove('active');
-    document.getElementById('tab-content-home-txt').classList.remove('active');
 
-    document.getElementById(`tab-btn-home-${tabId}`).classList.add('active');
-    document.getElementById(`tab-content-home-${tabId}`).classList.add('active');
-}
 
-// 左侧纹样标签：跳转到纹样转译页的文本tab，并自动填入纹样名提交
+
+// 左侧纹样标签：无论当前状态如何，重置并跳转到文本tab，自动提交解析
 function quickAnalyze(patternName) {
-    // 先跳转到转译页，切到文本tab
+    // 强制重置当前结果，确保新内容能被加载
+    currentResult = null;
+    currentImageFile = null;
+    textResultArray = [];
+
+    // 跳转到转译页，显示上传区，切到文本tab
     switchMainPage('trans');
-    if (!currentResult) {
-        switchTab('input', 'txt');
-        // 填入纹样名
-        document.getElementById('text-input-area').value = patternName;
-    }
+    document.getElementById('trans-upload-section').style.display = 'block';
+    document.getElementById('trans-result-section').style.display = 'none';
+    document.getElementById('trans-actions').style.display = 'none';
+    switchTab('input', 'txt');
+
+    // 填入纹样名
+    document.getElementById('text-input-area').value = patternName;
+
     // 设置状态提示
-    document.getElementById('res-status').innerHTML =
+    const statusEl = document.getElementById('res-status');
+    statusEl.innerHTML =
         `<i class="fas fa-spinner fa-spin"></i> <span style="color:var(--zhu);">` +
         (currentLang === 'zh' ? `正在加载【${patternName}】...` : `Loading ${patternName}...`) +
         `</span>`;
 
     // 自动触发解析
-    processTextAnalysis(patternName, true).then(() => {
-        // 成功后隐藏上传区，显示结果
-    }).catch(err => {
-        const errMsg = err.message || '加载失败';
-        document.getElementById('res-status').innerHTML =
-            `<span style="color:var(--zhu);">${errMsg}，请重试</span>`;
+    processTextAnalysis(patternName, true).catch(err => {
+        statusEl.innerHTML = `<span style="color:var(--zhu);">${err.message || '加载失败'}，请重试</span>`;
     });
 }
 
@@ -1387,9 +1515,14 @@ function renderCharts() {
 }
 
 let currentEvoData = [];
+function getLangVal(obj) {
+    if (!obj) return "";
+    return obj[currentLang] || obj['en'] || obj['zh'] || "";
+}
+
 function renderEvolutionTimeline(dDetails, finalName) {
     currentEvoData = dDetails.evolution || [];
-    if(currentEvoData.length === 0) return;
+    if (currentEvoData.length === 0) return;
 
     const timelineContainer = document.getElementById('evo-timeline');
     timelineContainer.querySelectorAll('.timeline-dot-wrapper').forEach(d => d.remove());
@@ -1405,7 +1538,7 @@ function renderEvolutionTimeline(dDetails, finalName) {
 
         const label = document.createElement('div');
         label.className = 'timeline-label';
-        label.innerText = evo.era[currentLang] || evo.era['en'] || evo.era['zh'];
+        label.innerText = getLangVal(evo.era);
 
         wrap.appendChild(dot);
         wrap.appendChild(label);
@@ -1426,13 +1559,14 @@ function selectEvoNode(index, finalName) {
     }
 
     const evo = currentEvoData[index];
-    const eraText = evo.era[currentLang] || evo.era['en'] || evo.era['zh'];
-    const descText = evo.desc[currentLang] || evo.desc['en'] || evo.desc['zh'];
+    const eraText = getLangVal(evo.era);
+    const descText = getLangVal(evo.desc);
 
     document.getElementById('evo-info-title').innerText = `${eraText} · ${finalName}`;
     document.getElementById('evo-info-desc').innerText = descText;
 
-    let searchKeyword = (evo.era['zh'] || eraText) + " " + finalName + " 文物";
+    // 使用中文关键词搜索图片（不受语言切换影响，确保搜索质量）
+    let searchKeyword = (evo.era['zh'] || eraText) + " " + (currentResult?.pattern_type || finalName) + " 文物";
     let imgUrl = `${API_BASE}/api/image?q=${encodeURIComponent(searchKeyword)}`;
     document.getElementById('evo-img-display').innerHTML = `<img src="${imgUrl}" alt="${finalName} ${eraText}" style="width:100%; height:100%; object-fit:cover;">`;
 }
@@ -1466,9 +1600,18 @@ function renderSemantic() {
         if (!catNodes || catNodes.length === 0) continue;
 
         let displayCat = cat;
-        if (currentLang === 'en') {
-            const enCats = {"基本信息":"Basic Info", "工艺":"Crafts", "空间":"Space", "寓意":"Meaning", "相关纹样":"Related", "历史人物":"Figures", "文化典故":"Stories", "艺术作品":"Artworks"};
-            displayCat = enCats[cat] || cat;
+        if (currentLang === 'en' || currentLang === 'fr' || currentLang === 'ja' || currentLang === 'ko' || currentLang === 'ar') {
+            const catTrans = {
+                "基本信息": {"en":"Basic Info","fr":"Info de base","ja":"基本情報","ko":"기본 정보","ar":"معلومات أساسية"},
+                "工艺": {"en":"Crafts","fr":"Artisanat","ja":"工芸","ko":"공예","ar":"حرف"},
+                "空间": {"en":"Space","fr":"Espace","ja":"空間","ko":"공간","ar":"الفضاء"},
+                "寓意": {"en":"Meaning","fr":"Signification","ja":"意味","ko":"의미","ar":"المعنى"},
+                "相关纹样": {"en":"Related","fr":"Connexe","ja":"関連","ko":"관련","ar":"ذات صلة"},
+                "历史人物": {"en":"Figures","fr":"Figures","ja":"人物","ko":"인물","ar":"شخصيات"},
+                "文化典故": {"en":"Stories","fr":"Histoires","ja":"物語","ko":"이야기","ar":"قصص"},
+                "艺术作品": {"en":"Artworks","fr":"Œuvres","ja":"芸術","ko":"예술","ar":"أعمال فنية"}
+            };
+            displayCat = catTrans[cat]?.[currentLang] || cat;
         }
 
         let catNodeId = 'cat_' + catIndex;
@@ -1511,11 +1654,24 @@ function renderSemantic() {
     semChart.resize();
 }
 
+function toggleMenu() {
+    const menu = document.getElementById('nav-links-menu');
+    const btn = document.getElementById('nav-hamburger');
+    menu.classList.toggle('open');
+    btn.classList.toggle('open');
+}
+
+function closeMenu() {
+    document.getElementById('nav-links-menu')?.classList.remove('open');
+    document.getElementById('nav-hamburger')?.classList.remove('open');
+}
+
 window.addEventListener('resize', () => {
     if (window.innerWidth > 900) {
-        document.getElementById('nav-hamburger')?.classList.remove('open');
-        document.getElementById('nav-links-menu')?.classList.remove('open');
+        closeMenu();
     }
+    if (pieChart) pieChart.resize();
+    if (semChart) semChart.resize();
 });
 </script>
 </body>
