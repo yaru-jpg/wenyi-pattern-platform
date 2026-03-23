@@ -943,6 +943,7 @@ input[type="text"]:focus, textarea:focus {
     <div id="page-collect" class="page">
         <h1 data-i18n="nav_collect">我的收藏</h1>
         <div class="panel">
+            <p class="aux-text" style="margin-bottom: 16px;"><i class="fas fa-hand-pointer"></i> 点击纹样名称可进入该纹样的转译详情页</p>
             <table class="data-table" id="collection-table">
                 <tr><th width="25%" data-i18n="col_time">收藏时间</th><th data-i18n="col_name">纹样名称</th><th width="10%" data-i18n="col_op">操作</th></tr>
                 <tr id="empty-collect-msg"><td colspan="3" style="text-align: center; color: var(--smoke); padding: 32px; font-family: 'Noto Serif SC', serif;"><i class="fas fa-star" style="color: var(--border); font-size: 24px; display: block; margin-bottom: 12px;"></i><span data-i18n="col_empty">暂无收藏记录，请前往纹样卡片页面点击星标收藏。</span></td></tr>
@@ -962,6 +963,22 @@ input[type="text"]:focus, textarea:focus {
                 <div style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: linear-gradient(135deg, #FAF7F2, #F4EFE6); border-left: 3px solid var(--amber);">
                     <i class="fas fa-adjust" style="color: var(--amber); margin-top: 2px; width: 16px;"></i>
                     <p data-i18n="help_2">2. 转译结果的准确度受图片光线与清晰度影响。</p>
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: linear-gradient(135deg, #FFF8F0, #FFF0E0); border-left: 3px solid var(--zhu);">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--zhu); margin-top: 2px; width: 16px;"></i>
+                    <p data-i18n="help_3">3. <strong>重要提示：</strong>纹样解析由 AI 大模型完成，识别结果仅供参考，不保证完全准确。同一纹样可能存在多种叫法或流派，历史典故与文化解读亦因地域与朝代而存在差异，建议结合专业文献进行核实。</p>
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: linear-gradient(135deg, #FAF7F2, #F4EFE6); border-left: 3px solid var(--amber);">
+                    <i class="fas fa-clock" style="color: var(--amber); margin-top: 2px; width: 16px;"></i>
+                    <p data-i18n="help_4">4. 解析过程通常需要 10～60 秒，请耐心等待。若出现"请求超时"，可刷新页面后重试，或稍后再试。</p>
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: linear-gradient(135deg, #FAF7F2, #F4EFE6); border-left: 3px solid var(--amber);">
+                    <i class="fas fa-keyboard" style="color: var(--amber); margin-top: 2px; width: 16px;"></i>
+                    <p data-i18n="help_5">5. 文本描述模式下，请尽量详细描述纹样的视觉特征（形状、构图、动植物元素等），描述越具体，推理结果越准确。</p>
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: linear-gradient(135deg, #FAF7F2, #F4EFE6); border-left: 3px solid var(--amber);">
+                    <i class="fas fa-bookmark" style="color: var(--amber); margin-top: 2px; width: 16px;"></i>
+                    <p data-i18n="help_6">6. 点击纹样卡片右上角的星形图标可收藏纹样；在"我的收藏"页面点击纹样名称，可重新查看该纹样的完整解析结果。</p>
                 </div>
             </div>
         </div>
@@ -1617,7 +1634,12 @@ function toggleCollection() {
     btn.classList.toggle('active');
 
     if(btn.classList.contains('active')) {
-        collections[currentResult.img_id] = { pName: currentResult.pattern_type, date: new Date().toLocaleDateString() };
+        collections[currentResult.img_id] = {
+            pName: currentResult.pattern_type,
+            date: new Date().toLocaleDateString(),
+            result: JSON.parse(JSON.stringify(currentResult)),
+            isTextMode: isTextMode
+        };
     } else {
         delete collections[currentResult.img_id];
     }
@@ -1635,10 +1657,72 @@ function updateCollectionTable() {
         keys.forEach(k => {
             const tr = document.createElement('tr');
             tr.className = 'col-row';
-            tr.innerHTML = `<td>${collections[k].date}</td><td>${collections[k].pName}</td><td><i class="fas fa-trash-alt" style="cursor:pointer;" onclick="deleteCollection('${k}')"></i></td>`;
+            const pName = collections[k].pName;
+            tr.innerHTML = `<td>${collections[k].date}</td><td><a href="javascript:void(0)" onclick="openCollectionItem('${k}')" style="color:var(--deep-zhu);text-decoration:underline;cursor:pointer;font-weight:600;">${pName}</a></td><td><i class="fas fa-trash-alt" style="cursor:pointer;" onclick="deleteCollection('${k}')"></i></td>`;
             table.appendChild(tr);
         });
     }
+}
+
+function openCollectionItem(k) {
+    const item = collections[k];
+    if (!item || !item.result) return;
+    // 恢复该纹样的完整结果并跳转到转译页
+    currentResult = item.result;
+    isTextMode = item.isTextMode || false;
+    textResultArray = [currentResult];
+
+    switchMainPage('trans');
+    document.getElementById('trans-upload-section').style.display = 'none';
+    document.getElementById('trans-result-section').style.display = 'block';
+    document.getElementById('trans-actions').style.display = 'block';
+    document.getElementById('text-result-nav').style.display = 'none';
+
+    // 恢复主图
+    const mainImg = document.getElementById('display-main-img');
+    let searchKeyword = currentResult.pattern_type + " 古典纹样 文物";
+    let imgUrl = `${API_BASE}/api/image?q=${encodeURIComponent(searchKeyword)}`;
+    mainImg.src = '';
+    mainImg.style.display = 'none';
+    const imgContainer = document.getElementById('card-main-img-container');
+    let placeholderDiv = imgContainer.querySelector('.img-loading-placeholder');
+    if (!placeholderDiv) {
+        placeholderDiv = document.createElement('div');
+        placeholderDiv.className = 'img-loading-placeholder';
+        placeholderDiv.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--silk);z-index:3;';
+        imgContainer.appendChild(placeholderDiv);
+    }
+    placeholderDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="color:var(--amber);font-size:28px;"></i>';
+    placeholderDiv.style.display = 'flex';
+    mainImg.onload = () => { mainImg.style.display = 'block'; placeholderDiv.style.display = 'none'; };
+    mainImg.onerror = () => { mainImg.style.display = 'none'; placeholderDiv.innerHTML = `<span style="color:var(--smoke);font-size:13px;padding:16px;text-align:center;">${currentResult.pattern_type}</span>`; };
+    mainImg.src = imgUrl;
+
+    updateDynamicContentLanguage();
+
+    if (isTextMode) {
+        document.getElementById('val-color').innerHTML = `<span style="color:#7A6F66; font-weight: 500;">${dict[currentLang]?.color_no_extract || dict['zh'].color_no_extract}</span>`;
+        document.getElementById('line-art-container').innerHTML = `<div style="text-align:center; color:#7A6F66; padding: 60px 20px;"><i class="fas fa-magic fa-3x" style="margin-bottom:16px;"></i><p>${dict[currentLang]?.ml_line_placeholder || dict['zh'].ml_line_placeholder}</p></div>`;
+        document.getElementById('color-real-content').style.display = 'none';
+        document.getElementById('color-placeholder-content').style.display = 'block';
+    } else {
+        if (currentResult.edge_base64) {
+            document.getElementById('line-art-container').innerHTML = `<img src="data:image/jpeg;base64,${currentResult.edge_base64}" class="line-art-element" style="max-width:100%; max-height:100%; object-fit:contain; z-index:5;">`;
+        }
+        document.getElementById('color-real-content').style.display = '';
+        document.getElementById('color-placeholder-content').style.display = 'none';
+        let colorText = "";
+        if (currentResult.colors) {
+            currentResult.colors.forEach((c, i) => { colorText += `<span style="display:inline-block;width:12px;height:12px;background:${c};margin:0 4px;border:1px solid #000;"></span>${currentResult.color_ratios[i]}% ` });
+        }
+        document.getElementById('val-color').innerHTML = colorText;
+    }
+
+    syncFavBtn();
+    switchTab('info', 'basic');
+    switchTab('trans', 'card');
+    setTimeout(renderCharts, 150);
+    setTimeout(renderSemantic, 150);
 }
 
 function deleteCollection(k) {
