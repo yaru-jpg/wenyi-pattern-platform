@@ -670,7 +670,10 @@ input[type="text"]:focus, textarea:focus {
 </div>
 
 <nav>
-    <div class="nav-brand" data-i18n="nav_brand">纹谱</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+        <img src="/api/logo" alt="纹谱Logo" style="height:44px; width:44px; object-fit:contain; flex-shrink:0;">
+        <div class="nav-brand" data-i18n="nav_brand">纹谱</div>
+    </div>
     <div class="nav-links" id="nav-links-menu">
         <button onclick="switchMainPage('home'); closeMenu()" id="nav-home" class="active"><i class="fas fa-home"></i> <span data-i18n="nav_home">首页</span></button>
         <button onclick="switchMainPage('trans'); closeMenu()" id="nav-trans"><i class="fas fa-project-diagram"></i> <span data-i18n="nav_trans">纹样转译</span></button>
@@ -1220,7 +1223,14 @@ function updateDynamicContentLanguage() {
 
     document.getElementById('val-era').innerText = finalEra;
     document.getElementById('story-meaning').innerText = localizedDetails.meaning || "--";
-    document.getElementById('story-history').innerText = localizedDetails.history || "--";
+    // 防御性清理 history 字段：若含有 JSON 特征，则用兜底文字替换
+    let historyText = localizedDetails.history || "--";
+    if (historyText.includes('"pattern_name"') || historyText.includes('模型返回格式') ||
+        (historyText.includes('{') && historyText.includes('"era"'))) {
+        historyText = currentLang === 'zh' ? "暂无详细历史记载，请尝试图像上传模式获取更准确信息。"
+            : "Detailed records unavailable. Try image upload for more accurate results.";
+    }
+    document.getElementById('story-history').innerText = historyText;
     document.getElementById('story-usage').innerText = localizedDetails.usage || "--";
     document.getElementById('story-cross').innerText = localizedDetails.cross || "--";
 
@@ -1333,8 +1343,18 @@ function quickAnalyze(patternName) {
         (currentLang === 'zh' ? `正在加载【${patternName}】...` : `Loading ${patternName}...`) +
         `</span>`;
 
+    // 设置按钮为加载状态
+    const btnHtml = document.getElementById('trigger-upload-btn');
+    btnHtml.disabled = true;
+    btnHtml.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ` + (currentLang === 'zh' ? `加载中...` : `Loading...`);
+
     // 自动触发解析
-    processTextAnalysis(patternName, true).catch(err => {
+    processTextAnalysis(patternName, true).then(() => {
+        btnHtml.disabled = false;
+        btnHtml.innerHTML = `<i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">${dict[currentLang]?.trans_submit || '提交解析'}</span>`;
+    }).catch(err => {
+        btnHtml.disabled = false;
+        btnHtml.innerHTML = `<i class="fas fa-satellite-dish"></i> <span data-i18n="trans_submit">${dict[currentLang]?.trans_submit || '提交解析'}</span>`;
         statusEl.innerHTML = `<span style="color:var(--zhu);">${err.message || '加载失败'}，请重试</span>`;
     });
 }

@@ -9,6 +9,8 @@ import base64
 import traceback
 import urllib.request
 import urllib.parse
+import asyncio
+import aiohttp
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -65,6 +67,18 @@ async def serve_index():
 
 
 # ==========================================
+# LOGO 接口
+# ==========================================
+@app.get("/api/logo")
+async def serve_logo():
+    logo_path = os.path.join(os.path.dirname(__file__), "LOGO022.png")
+    if os.path.exists(logo_path):
+        return FileResponse(logo_path, media_type="image/png",
+                            headers={"Cache-Control": "public, max-age=86400"})
+    return Response(status_code=404)
+
+
+# ==========================================
 # 3. 健康检查接口（用于快速诊断部署状态）
 # ==========================================
 @app.get("/api/health")
@@ -78,37 +92,53 @@ async def health_check():
 
 
 # ==========================================
-# 4. 图片代理接口（绕过浏览器跨域/防盗链）
+# 5. 图片代理接口（绕过浏览器跨域/防盗链）
 # ==========================================
 @app.get("/api/image")
 async def proxy_image(q: str):
-    """代理搜索图片，避免浏览器跨域/防盗链问题（带内存缓存加速）"""
+    """代理搜索图片，避免浏览器跨域/防盗链问题（带内存缓存 + 异步并发多源加速）"""
     cache_key = q.strip().lower()
     cached = _cache_get(cache_key)
     if cached:
         return Response(content=cached[0], media_type=cached[1],
-                        headers={"Cache-Control": "public, max-age=3600"})
+                        headers={"Cache-Control": "public, max-age=86400"})
 
-    # 尝试多个图片源，提高成功率
+    qenc = urllib.parse.quote(q)
     sources = [
-        f"https://tse2.mm.bing.net/th?q={urllib.parse.quote(q)}&w=600&h=450&c=7&rs=1&p=0",
-        f"https://tse1.mm.bing.net/th?q={urllib.parse.quote(q)}&w=400&h=300&c=7",
-        f"https://tse3.mm.bing.net/th?q={urllib.parse.quote(q)}&w=400&h=300",
+        f"https://tse2.mm.bing.net/th?q={qenc}&w=600&h=450&c=7&rs=1&p=0",
+        f"https://tse1.mm.bing.net/th?q={qenc}&w=400&h=300&c=7",
+        f"https://tse3.mm.bing.net/th?q={qenc}&w=400&h=300",
+        f"https://tse4.mm.bing.net/th?q={qenc}&w=400&h=300",
     ]
-    for url in sources:
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://www.bing.com/'
+    }
+
+    async def fetch_one(session: aiohttp.ClientSession, url: str):
         try:
-            req = urllib.request.Request(url, headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Referer': 'https://www.bing.com/'
-            })
-            with urllib.request.urlopen(req, timeout=6) as resp:
-                data = resp.read()
-                content_type = resp.headers.get('Content-Type', 'image/jpeg')
-            _cache_set(cache_key, (data, content_type))
-            return Response(content=data, media_type=content_type,
-                            headers={"Cache-Control": "public, max-age=3600"})
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                if resp.status == 200:
+                    data = await resp.read()
+                    ct = resp.headers.get('Content-Type', 'image/jpeg')
+                    return data, ct
         except Exception:
-            continue
+            pass
+        return None
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            tasks = [fetch_one(session, url) for url in sources]
+            for coro in asyncio.as_completed(tasks):
+                result = await coro
+                if result:
+                    data, ct = result
+                    _cache_set(cache_key, (data, ct))
+                    return Response(content=data, media_type=ct,
+                                    headers={"Cache-Control": "public, max-age=86400"})
+    except Exception:
+        pass
 
     # 所有源失败，返回占位 SVG
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450">
@@ -160,6 +190,13 @@ def robust_json_parse(raw_text):
 
 def _make_fallback_result(pattern_name: str, err_msg: str = "") -> dict:
     """当模型调用失败时，返回一个结构完整的占位结果，保证前端不崩溃"""
+    # 清理 err_msg，避免把原始 JSON 或过长的错误信息直接暴露给用户
+    safe_history_zh = "暂无详细历史记载，请尝试图像上传模式获取更准确信息。"
+    safe_history_en = "Detailed records unavailable. Try image upload for more accurate results."
+    # 若错误信息不包含原始 JSON 片段，则追加简短提示
+    if err_msg and not any(c in err_msg for c in ['{', '[', '"pattern_name"', '模型返回格式']):
+        safe_history_zh = f"暂无详细历史记载（{err_msg[:60]}）。"
+        safe_history_en = f"Unavailable ({err_msg[:60]})."
     return {
         "pattern_type": pattern_name,
         "confidence": "基于文本推理",
@@ -174,7 +211,7 @@ def _make_fallback_result(pattern_name: str, err_msg: str = "") -> dict:
                 "name": pattern_name,
                 "era": "历史悠久",
                 "meaning": "寓意吉祥，象征美好。",
-                "history": err_msg or "暂无详细历史记载，请尝试图像上传模式获取更准确信息。",
+                "history": safe_history_zh,
                 "usage": "广泛用于织物、瓷器、建筑装饰等。",
                 "cross": "与多个文化圈存在交流影响。"
             },
@@ -182,7 +219,7 @@ def _make_fallback_result(pattern_name: str, err_msg: str = "") -> dict:
                 "name": pattern_name,
                 "era": "Historical",
                 "meaning": "Auspicious symbol of good fortune.",
-                "history": err_msg or "Detailed records unavailable. Try image upload for more accurate results.",
+                "history": safe_history_en,
                 "usage": "Used in textiles, ceramics, and architectural decoration.",
                 "cross": "Cultural exchanges across multiple civilizations."
             },
