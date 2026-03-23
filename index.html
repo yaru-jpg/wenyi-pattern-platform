@@ -1410,8 +1410,8 @@ document.getElementById('trigger-upload-btn').addEventListener('click', () => {
     }
 });
 
-// 带超时的 fetch 封装（默认 75 秒，大模型调用较慢）
-async function fetchWithTimeout(url, options, timeoutMs = 75000) {
+// 带超时的 fetch 封装（默认 110 秒，大模型调用较慢）
+async function fetchWithTimeout(url, options, timeoutMs = 110000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -1420,7 +1420,7 @@ async function fetchWithTimeout(url, options, timeoutMs = 75000) {
         return response;
     } catch (err) {
         clearTimeout(timer);
-        if (err.name === 'AbortError') throw new Error('请求超时，大模型响应过慢，请稍后重试');
+        if (err.name === 'AbortError') throw new Error('请求超时，请稍后重试');
         throw err;
     }
 }
@@ -1436,6 +1436,16 @@ async function processAnalysis(file) {
     setLoadingStatus(currentLang === 'zh' ? '正在调用视觉大模型构建档案...' : 'Retrieving & Processing...');
     const formData = new FormData();
     formData.append('file', file);
+
+    // 分阶段进度提示
+    const progressMsgs = currentLang === 'zh'
+        ? ['正在识别纹样特征...', '大模型深度分析中...', '正在补充历史典故...', '即将完成，请稍候...']
+        : ['Identifying pattern...', 'Deep analysis...', 'Fetching historical records...', 'Almost done...'];
+    let step = 0;
+    const progressTimer = setInterval(() => {
+        if (step < progressMsgs.length - 1) step++;
+        setLoadingStatus(progressMsgs[step]);
+    }, 12000);
 
     try {
         const response = await fetchWithTimeout(`${API_BASE}/api/analyze`, { method: 'POST', body: formData });
@@ -1474,7 +1484,9 @@ async function processAnalysis(file) {
         if (oldPh) oldPh.style.display = 'none';
         setTimeout(renderCharts, 150);
         setTimeout(renderSemantic, 150);
+        clearInterval(progressTimer);
     } catch (err) {
+        clearInterval(progressTimer);
         const msg = err.message || 'API连接异常';
         setLoadingStatus(msg, true);
         throw err;
@@ -1488,8 +1500,19 @@ async function processTextAnalysis(text, isExactMatch = false) {
     formData.append('text', text);
     formData.append('exact', isExactMatch ? '1' : '0');
 
+    // 分阶段进度提示
+    const progressMsgs2 = currentLang === 'zh'
+        ? ['大模型正在推理纹样信息...', '正在查询历史典故...', '正在整理分析结果...', '即将完成，请稍候...']
+        : ['AI analyzing pattern...', 'Fetching history...', 'Organizing results...', 'Almost done...'];
+    let step2 = 0;
+    const progressTimer2 = setInterval(() => {
+        if (step2 < progressMsgs2.length - 1) step2++;
+        setLoadingStatus(progressMsgs2[step2]);
+    }, 10000);
+
     try {
         const response = await fetchWithTimeout(`${API_BASE}/api/analyze_text`, { method: 'POST', body: formData });
+        clearInterval(progressTimer2);
         if (!response.ok) throw new Error(`服务器返回 ${response.status}，请检查 Railway 部署状态`);
         textResultArray = await response.json();
 
@@ -1515,6 +1538,7 @@ async function processTextAnalysis(text, isExactMatch = false) {
 
         switchTextResult(0, isExactMatch ? null : document.getElementById('text-result-buttons').firstChild, isExactMatch);
     } catch (err) {
+        clearInterval(progressTimer2);
         const msg = err.message || 'API连接异常';
         setLoadingStatus(msg, true);
         throw err;

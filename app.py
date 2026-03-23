@@ -322,14 +322,42 @@ async def analyze_text(text: str = Form(...), exact: str = Form(default="0")):
     if not dashscope.api_key:
         return JSONResponse(status_code=500, content={"detail": "未检测到 API KEY，请在 Railway Variables 中配置 DASHSCOPE_API_KEY。"})
 
-    last_err = ""
-    for attempt in range(2):  # 最多重试2次
+    # ---- 异步 history 补救函数（并发调用，不阻塞主流程）----
+    async def _fill_history(pname: str, details: dict):
+        """若 history 字段不足20字，用 qwen-turbo 单独补充（限时15s）"""
+        zh_detail = details.get("zh", {})
+        if len(zh_detail.get("history", "")) >= 20:
+            return
         try:
+            loop = asyncio.get_event_loop()
+            hist_resp = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: dashscope.Generation.call(
+                    model='qwen-turbo',
+                    messages=[{'role': 'user', 'content':
+                        f"请用80字左右介绍中国传统纹样「{pname}」的历史典故，只输出纯文字。"}],
+                    result_format='message',
+                    max_tokens=200
+                )),
+                timeout=15
+            )
+            if hist_resp.status_code == 200:
+                hist_text = hist_resp.output.choices[0].message.content.strip()
+                if hist_text and len(hist_text) > 15:
+                    details.setdefault("zh", {})["history"] = hist_text
+                    if len(details.get("en", {}).get("history", "")) < 20:
+                        details.setdefault("en", {})["history"] = hist_text
+        except Exception:
+            pass
+
+    last_err = ""
+    for attempt in range(1):  # 只尝试1次，避免双倍耗时
+        try:
+            # qwen-turbo 比 qwen-plus 快约3-5倍，足以应对纹样查询场景
             response = dashscope.Generation.call(
-                model='qwen-plus',
+                model='qwen-turbo',
                 messages=[{'role': 'user', 'content': prompt}],
                 result_format='message',
-                max_tokens=3000 if not is_exact else 2000
+                max_tokens=2000 if not is_exact else 1500
             )
 
             if response.status_code != 200:
@@ -343,34 +371,21 @@ async def analyze_text(text: str = Form(...), exact: str = Form(default="0")):
                 last_err = f"模型返回格式错乱: {raw_text[:200]}"
                 continue
 
-            results = []
+            # 并发补充所有 history 字段（不等待单个完成再开始下一个）
+            fill_tasks = []
+            items_details = []
             for item in ai_data_list:
                 pname = item.get("pattern_name", text)
                 details = item.get("details", {})
+                items_details.append((pname, details))
+                fill_tasks.append(_fill_history(pname, details))
+            if fill_tasks:
+                await asyncio.gather(*fill_tasks, return_exceptions=True)
 
-                # 若 history 字段为空或过短（<20字），单独补充查询一次
-                zh_detail = details.get("zh", {})
-                if len(zh_detail.get("history", "")) < 20:
-                    try:
-                        hist_resp = dashscope.Generation.call(
-                            model='qwen-turbo',
-                            messages=[{'role': 'user', 'content':
-                                f"请用100字左右介绍中国传统纹样「{pname}」的历史典故和文化来源，只输出纯文字，不要标题和Markdown。"}],
-                            result_format='message',
-                            max_tokens=300
-                        )
-                        if hist_resp.status_code == 200:
-                            hist_text = hist_resp.output.choices[0].message.content.strip()
-                            if hist_text and len(hist_text) > 15:
-                                zh_detail["history"] = hist_text
-                                details["zh"] = zh_detail
-                                # 同步到英文（简单赋值，不翻译）
-                                en_detail = details.get("en", {})
-                                if len(en_detail.get("history", "")) < 20:
-                                    en_detail["history"] = hist_text
-                                    details["en"] = en_detail
-                    except Exception:
-                        pass
+            results = []
+            for pname, details in items_details:
+
+
 
 
 
@@ -502,16 +517,20 @@ async def analyze_pattern(file: UploadFile = File(...)):
                         if lc not in d:
                             d[lc] = zh_val
 
-        # 若 history 字段为空或过短（<20字），单独补充查询一次
+        # 若 history 字段为空或过短（<20字），异步补充查询（限时15s）
         zh_hist = dynamic_details.get("zh", {}).get("history", "")
         if len(zh_hist) < 20:
             try:
-                hist_resp = dashscope.Generation.call(
-                    model='qwen-turbo',
-                    messages=[{'role': 'user', 'content':
-                        f"请用100字左右介绍中国传统纹样「{predicted_name}」的历史典故和文化来源，只输出纯文字，不要标题和Markdown。"}],
-                    result_format='message',
-                    max_tokens=300
+                loop = asyncio.get_event_loop()
+                hist_resp = await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda: dashscope.Generation.call(
+                        model='qwen-turbo',
+                        messages=[{'role': 'user', 'content':
+                            f"请用80字左右介绍中国传统纹样「{predicted_name}」的历史典故，只输出纯文字。"}],
+                        result_format='message',
+                        max_tokens=200
+                    )),
+                    timeout=15
                 )
                 if hist_resp.status_code == 200:
                     hist_text = hist_resp.output.choices[0].message.content.strip()
