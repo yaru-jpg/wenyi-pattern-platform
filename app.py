@@ -286,11 +286,13 @@ async def analyze_text(text: str = Form(...), exact: str = Form(default="0")):
         # 精确模式：只需返回1种，prompt简洁
         prompt = (
             f"你是中国古典纹样专家。请详细介绍传统纹样「{text}」。\n"
-            "【重要】只输出JSON数组（含1个元素），禁止Markdown！\n"
+            "【重要规则】①只输出JSON数组（含1个元素），禁止Markdown和任何注释！"
+            "②history字段必须填写真实历史典故，不少于50字，禁止填写'暂无'或空字符串！\n"
             "格式：\n"
             '[{"pattern_name":"名称","details":{'
-            '"zh":{"name":"名称","era":"年代","meaning":"寓意","history":"典故","usage":"场景","cross":"跨文化"},'
-            '"en":{"name":"Name","era":"Era","meaning":"Meaning","history":"History","usage":"Usage","cross":"Cross"},'
+            '"zh":{"name":"名称","era":"起源朝代（如唐代）","meaning":"文化寓意（20字以上）",'
+            '"history":"详细历史典故和来源（50字以上，必须填写）","usage":"使用场景","cross":"跨文化影响"},'
+            '"en":{"name":"Name","era":"Era","meaning":"Meaning","history":"Detailed history (required, 50+ chars)","usage":"Usage","cross":"Cross-cultural"},'
             '"semantics":{"基本信息":["年代"],"工艺":["工艺"],"寓意":["寓意"]},'
             '"evolution":['
             '{"era":{"zh":"起源朝代","en":"Origin"},"desc":{"zh":"特征","en":"Features"},"keyword":"key"},'
@@ -302,14 +304,16 @@ async def analyze_text(text: str = Form(...), exact: str = Form(default="0")):
         # 自由描述模式：推理2-3种可能的纹样
         prompt = (
             f"你是中国古典纹样专家。根据用户描述\"{text}\"，推理出2到3种最可能匹配的传统纹样。\n"
-            "【重要】只输出JSON数组（含2-3个元素），禁止Markdown和其他文字！\n"
+            "【重要规则】①只输出JSON数组（含2-3个元素），禁止Markdown和任何注释！"
+            "②每个纹样的history字段必须填写真实历史典故，不少于50字，禁止填写'暂无'或空字符串！\n"
             "格式：\n"
             '[{"pattern_name":"纹样一名称","details":{'
-            '"zh":{"name":"名称","era":"年代","meaning":"寓意","history":"典故","usage":"场景","cross":"跨文化"},'
-            '"en":{"name":"Name","era":"Era","meaning":"Meaning","history":"History","usage":"Usage","cross":"Cross"},'
+            '"zh":{"name":"名称","era":"起源朝代（如唐代）","meaning":"文化寓意（20字以上）",'
+            '"history":"详细历史典故和来源（50字以上，必须填写）","usage":"使用场景","cross":"跨文化影响"},'
+            '"en":{"name":"Name","era":"Era","meaning":"Meaning","history":"Detailed history (required, 50+ chars)","usage":"Usage","cross":"Cross-cultural"},'
             '"semantics":{"基本信息":["年代"],"工艺":["工艺"],"寓意":["寓意"]},'
             '"evolution":['
-            '{"era":{"zh":"起源朝代","en":"Origin"},"desc":{"zh":"特征","en":"Features"},"keyword":"key"},'
+            '{"era":{"zh":"起源朝代","en":"Origin"},"desc":{"zh":"特征","en":"Features"},"keyword":"key1"},'
             '{"era":{"zh":"发展朝代","en":"Development"},"desc":{"zh":"演变","en":"Changes"},"keyword":"key2"},'
             '{"era":{"zh":"鼎盛朝代","en":"Peak"},"desc":{"zh":"成熟","en":"Mature"},"keyword":"key3"}'
             ']}},{"pattern_name":"纹样二名称","details":{...同上格式...}}]'
@@ -343,6 +347,32 @@ async def analyze_text(text: str = Form(...), exact: str = Form(default="0")):
             for item in ai_data_list:
                 pname = item.get("pattern_name", text)
                 details = item.get("details", {})
+
+                # 若 history 字段为空或过短（<20字），单独补充查询一次
+                zh_detail = details.get("zh", {})
+                if len(zh_detail.get("history", "")) < 20:
+                    try:
+                        hist_resp = dashscope.Generation.call(
+                            model='qwen-turbo',
+                            messages=[{'role': 'user', 'content':
+                                f"请用100字左右介绍中国传统纹样「{pname}」的历史典故和文化来源，只输出纯文字，不要标题和Markdown。"}],
+                            result_format='message',
+                            max_tokens=300
+                        )
+                        if hist_resp.status_code == 200:
+                            hist_text = hist_resp.output.choices[0].message.content.strip()
+                            if hist_text and len(hist_text) > 15:
+                                zh_detail["history"] = hist_text
+                                details["zh"] = zh_detail
+                                # 同步到英文（简单赋值，不翻译）
+                                en_detail = details.get("en", {})
+                                if len(en_detail.get("history", "")) < 20:
+                                    en_detail["history"] = hist_text
+                                    details["en"] = en_detail
+                    except Exception:
+                        pass
+
+
 
                 # 确保 evolution 有足够节点（如模型给的节点少于3个，补充预设节点）
                 evo = details.get("evolution", [])
@@ -419,11 +449,13 @@ async def analyze_pattern(file: UploadFile = File(...)):
 
     prompt = (
         "你是中国古典纹样鉴定专家。识别图片中的传统纹样。\n"
-        "【重要】只输出JSON对象，禁止Markdown！单项不超过30字。\n"
+        "【重要规则】①只输出JSON对象，禁止Markdown！"
+        "②history字段必须填写真实历史典故，不少于50字，禁止填写'暂无'或空字符串！\n"
         '{"pattern_name":"名称","details":{'
-        '"zh":{"name":"名称","era":"年代","meaning":"寓意","history":"典故","usage":"场景","cross":"跨文化"},'
-        '"en":{"name":"Name","era":"Era","meaning":"Meaning","history":"History","usage":"Usage","cross":"Cross"},'
-        '"semantics":{"基本信息":["年代"],"工艺":["工艺"],"空间":["地点"],"寓意":["寓意"]},'
+        '"zh":{"name":"名称","era":"具体朝代","meaning":"详细文化寓意（20字以上）",'
+        '"history":"详细历史典故和来源（50字以上，必须填写）","usage":"使用场景","cross":"跨文化影响"},'
+        '"en":{"name":"Name","era":"Dynasty","meaning":"Cultural meaning","history":"Detailed history (50+ chars, required)","usage":"Usage","cross":"Cross-cultural"},'
+        '"semantics":{"基本信息":["年代","地区"],"工艺":["工艺技法"],"寓意":["象征含义"]},'
         '"evolution":['
         '{"era":{"zh":"起源朝代","en":"Origin"},"desc":{"zh":"起源特征","en":"Origin features"},"keyword":"key1"},'
         '{"era":{"zh":"发展朝代","en":"Development"},"desc":{"zh":"发展变化","en":"Development"},"keyword":"key2"},'
@@ -469,6 +501,26 @@ async def analyze_pattern(file: UploadFile = File(...)):
                     for lc in ["fr", "ja", "ko", "ar"]:
                         if lc not in d:
                             d[lc] = zh_val
+
+        # 若 history 字段为空或过短（<20字），单独补充查询一次
+        zh_hist = dynamic_details.get("zh", {}).get("history", "")
+        if len(zh_hist) < 20:
+            try:
+                hist_resp = dashscope.Generation.call(
+                    model='qwen-turbo',
+                    messages=[{'role': 'user', 'content':
+                        f"请用100字左右介绍中国传统纹样「{predicted_name}」的历史典故和文化来源，只输出纯文字，不要标题和Markdown。"}],
+                    result_format='message',
+                    max_tokens=300
+                )
+                if hist_resp.status_code == 200:
+                    hist_text = hist_resp.output.choices[0].message.content.strip()
+                    if hist_text and len(hist_text) > 15:
+                        dynamic_details.setdefault("zh", {})["history"] = hist_text
+                        if len(dynamic_details.get("en", {}).get("history", "")) < 20:
+                            dynamic_details.setdefault("en", {})["history"] = hist_text
+            except Exception:
+                pass
 
         conf_score = "98.50%"
 

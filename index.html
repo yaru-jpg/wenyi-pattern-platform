@@ -156,10 +156,8 @@ nav::before {
   position: relative;
 }
 .nav-brand::before {
-  content: '❖';
-  font-size: 14px;
-  margin-right: 8px;
-  opacity: 0.7;
+  content: none;
+  display: none;
 }
 .nav-links { display: flex; gap: 4px; }
 .nav-links button {
@@ -670,9 +668,9 @@ input[type="text"]:focus, textarea:focus {
 </div>
 
 <nav>
-    <div style="display:flex; align-items:center; gap:10px;">
-        <img src="/api/logo" alt="纹谱Logo" style="height:44px; width:44px; object-fit:contain; flex-shrink:0;">
-        <div class="nav-brand" data-i18n="nav_brand">纹谱</div>
+    <div style="display:flex; align-items:center; gap:6px; position:relative; z-index:1;">
+        <img src="/api/logo" alt="纹谱Logo" style="height:40px; width:40px; object-fit:contain; flex-shrink:0; display:block;">
+        <div class="nav-brand" data-i18n="nav_brand" style="padding-left:0; margin-left:0;">纹谱</div>
     </div>
     <div class="nav-links" id="nav-links-menu">
         <button onclick="switchMainPage('home'); closeMenu()" id="nav-home" class="active"><i class="fas fa-home"></i> <span data-i18n="nav_home">首页</span></button>
