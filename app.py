@@ -464,9 +464,30 @@ async def analyze_text(text: str = Form(...), exact: str = Form(default="0")):
             last_err = str(e)
             continue
 
-    # 所有重试失败，返回降级结果（保证前端不报错）
+    # 所有重试失败：若是自由描述模式，尝试快速提取纹样名再降级，避免按钮显示原始描述句
     print(f"[analyze_text] 所有重试失败，降级返回。最后错误: {last_err}")
-    return [_make_fallback_result(text, last_err)]
+    if not is_exact:
+        try:
+            name_prompt = (
+                f"根据描述\"{text[:120]}\"，只输出2-3个最可能的中国传统纹样名称，"
+                "用中文逗号分隔，不要任何其他内容，例如：缠枝莲花纹,云纹,回纹"
+            )
+            name_resp = dashscope.Generation.call(
+                model='qwen-turbo',
+                messages=[{'role': 'user', 'content': name_prompt}],
+                result_format='message',
+                max_tokens=60
+            )
+            if name_resp.status_code == 200:
+                raw_names = name_resp.output.choices[0].message.content.strip()
+                # 清理可能出现的多余符号
+                raw_names = raw_names.replace('、', ',').replace('，', ',').replace('\n', ',')
+                names = [n.strip() for n in raw_names.split(',') if n.strip() and len(n.strip()) < 20][:3]
+                if names:
+                    return [_make_fallback_result(n, "服务繁忙，请稍后重试") for n in names]
+        except Exception:
+            pass
+    return [_make_fallback_result(text if is_exact else "传统纹样", last_err)]
 
 
 @app.post("/api/analyze")
@@ -548,52 +569,142 @@ async def analyze_pattern(file: UploadFile = File(...)):
 
     try:
         loop = asyncio.get_event_loop()
-        text_response = await asyncio.wait_for(
-            loop.run_in_executor(None, lambda: dashscope.Generation.call(
-                model='qwen-turbo',
-                messages=[{'role': 'user', 'content': text_prompt}],
-                result_format='message',
-                max_tokens=3000
-            )),
-            timeout=45
-        )
-        if text_response.status_code == 200:
-            text_raw = text_response.output.choices[0].message.content.strip()
-            text_data = robust_json_parse(text_raw)
-            if text_data and isinstance(text_data, dict):
-                dynamic_details = text_data
-                # 若视觉模型给出了更准确的字段，补充进去
-                if vision_era and not dynamic_details.get("zh", {}).get("era"):
-                    dynamic_details.setdefault("zh", {})["era"] = vision_era
-                if vision_meaning and len(dynamic_details.get("zh", {}).get("meaning", "")) < 5:
-                    dynamic_details.setdefault("zh", {})["meaning"] = vision_meaning
-                if vision_usage and len(dynamic_details.get("zh", {}).get("usage", "")) < 5:
-                    dynamic_details.setdefault("zh", {})["usage"] = vision_usage
+        # 最多重试2次，第一次45s，第二次30s（换简化版prompt提升成功率）
+        for _attempt, (_timeout, _max_tok) in enumerate([(45, 3000), (30, 1500)]):
+            try:
+                _prompt_use = text_prompt if _attempt == 0 else (
+                    f"请简要介绍中国传统纹样「{predicted_name}」，只输出JSON："
+                    '{"zh":{"name":"名称","era":"朝代","meaning":"寓意","history":"历史起源与演变（100字以上）","usage":"用途","cross":"跨文化影响（50字以上）"},'
+                    '"en":{"name":"name","era":"era","meaning":"meaning","history":"history","usage":"usage","cross":"cross"},'
+                    '"semantics":{"基本信息":["中国传统"],"工艺":["手工"],"寓意":["吉祥"]},'
+                    '"evolution":[{"era":{"zh":"先秦","en":"Pre-Qin"},"desc":{"zh":"早期形态","en":"Early form"},"keyword":"origin"},'
+                    '{"era":{"zh":"汉唐","en":"Han-Tang"},"desc":{"zh":"成熟发展","en":"Mature"},"keyword":"mature"},'
+                    '{"era":{"zh":"宋明","en":"Song-Ming"},"desc":{"zh":"精细演变","en":"Refined"},"keyword":"refined"}]}'
+                )
+                text_response = await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda p=_prompt_use, t=_max_tok: dashscope.Generation.call(
+                        model='qwen-turbo',
+                        messages=[{'role': 'user', 'content': p}],
+                        result_format='message',
+                        max_tokens=t
+                    )),
+                    timeout=_timeout
+                )
+                if text_response.status_code == 200:
+                    text_raw = text_response.output.choices[0].message.content.strip()
+                    text_data = robust_json_parse(text_raw)
+                    if text_data and isinstance(text_data, dict) and text_data.get("zh"):
+                        dynamic_details = text_data
+                        # 若视觉模型给出了更准确的字段，补充进去
+                        if vision_era and not dynamic_details.get("zh", {}).get("era"):
+                            dynamic_details.setdefault("zh", {})["era"] = vision_era
+                        if vision_meaning and len(dynamic_details.get("zh", {}).get("meaning", "")) < 5:
+                            dynamic_details.setdefault("zh", {})["meaning"] = vision_meaning
+                        if vision_usage and len(dynamic_details.get("zh", {}).get("usage", "")) < 5:
+                            dynamic_details.setdefault("zh", {})["usage"] = vision_usage
+                        break  # 成功则跳出重试循环
+            except Exception as _e:
+                print(f"[analyze] qwen-turbo 文字查询第{_attempt+1}次失败: {_e}")
     except Exception as e:
-        print(f"[analyze] qwen-turbo 文字查询失败: {e}")
+        print(f"[analyze] qwen-turbo 文字查询全部失败: {e}")
 
-    # ── 若 qwen-turbo 也失败，用视觉模型返回的内容兜底 ──
+    # ── 若 qwen-turbo 也失败，用视觉模型返回的内容构建基础结构，再尝试最后补救 ──
     if not dynamic_details or not dynamic_details.get("zh"):
         dynamic_details = {
             "zh": {
                 "name": predicted_name,
                 "era": vision_era or "历史悠久",
                 "meaning": vision_meaning or "寓意吉祥，象征美好。",
-                "history": "历史查询暂时失败，请稍后重试或使用文本描述模式查询。",
+                "history": "",
                 "usage": vision_usage or "广泛用于织物、瓷器、建筑装饰等。",
-                "cross": "跨文化信息查询暂时失败，请稍后重试。"
+                "cross": ""
             },
             "en": {
                 "name": predicted_name,
                 "era": vision_era or "Historical",
                 "meaning": vision_meaning or "Auspicious symbol.",
-                "history": "History query temporarily failed. Please retry later.",
+                "history": "",
                 "usage": vision_usage or "Used in textiles, ceramics, and architectural decoration.",
-                "cross": "Cross-cultural info temporarily unavailable."
+                "cross": ""
             },
             "semantics": {"基本信息": [predicted_name, "中国传统"], "工艺": ["手工织造"], "寓意": ["吉祥"]},
             "evolution": []
         }
+        # 最后一次尝试：用简单prompt补救history和cross
+        try:
+            loop = asyncio.get_event_loop()
+            rescue_prompt = (
+                f"用一段话介绍中国传统纹样「{predicted_name}」的历史起源与跨文化影响，"
+                '以JSON格式返回{"history":"历史内容（至少100字）","cross":"跨文化影响（至少50字）"}，禁止Markdown。'
+            )
+            rescue_resp = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: dashscope.Generation.call(
+                    model='qwen-turbo',
+                    messages=[{'role': 'user', 'content': rescue_prompt}],
+                    result_format='message',
+                    max_tokens=600
+                )),
+                timeout=20
+            )
+            if rescue_resp.status_code == 200:
+                rescue_raw = rescue_resp.output.choices[0].message.content.strip()
+                rescue_data = robust_json_parse(rescue_raw)
+                if rescue_data and isinstance(rescue_data, dict):
+                    if rescue_data.get("history") and len(rescue_data["history"]) > 30:
+                        dynamic_details["zh"]["history"] = rescue_data["history"]
+                        dynamic_details["en"]["history"] = rescue_data["history"]
+                    if rescue_data.get("cross") and len(rescue_data["cross"]) > 20:
+                        dynamic_details["zh"]["cross"] = rescue_data["cross"]
+                        dynamic_details["en"]["cross"] = rescue_data["cross"]
+                elif rescue_raw and len(rescue_raw) > 30:
+                    dynamic_details["zh"]["history"] = rescue_raw
+                    dynamic_details["en"]["history"] = rescue_raw
+        except Exception as _re:
+            print(f"[analyze] 最终history补救失败: {_re}")
+        # 如果补救后还是空，填写说明性文字（而不是错误文字）
+        if not dynamic_details["zh"]["history"]:
+            dynamic_details["zh"]["history"] = f"{predicted_name}是中国传统纹样之一，历史悠久，广泛应用于各类器物装饰。"
+            dynamic_details["en"]["history"] = f"{predicted_name} is a traditional Chinese pattern with a long history."
+        if not dynamic_details["zh"]["cross"]:
+            dynamic_details["zh"]["cross"] = f"{predicted_name}通过丝绸之路等途径，对周边地区的装饰艺术产生了深远影响。"
+            dynamic_details["en"]["cross"] = f"Through the Silk Road, {predicted_name} influenced decorative arts in neighboring regions."
+
+    # 即使 qwen-turbo 返回了结果，也检查 history/cross 是否充实，不足则补救
+    elif dynamic_details.get("zh"):
+        zh_d = dynamic_details["zh"]
+        need_h = len(zh_d.get("history", "")) < 40
+        need_c = len(zh_d.get("cross", "")) < 30
+        if need_h or need_c:
+            try:
+                loop = asyncio.get_event_loop()
+                parts = []
+                if need_h: parts.append("①history：历史起源与演变（100字以上）")
+                if need_c: parts.append("②cross：跨文化影响与传播（50字以上）")
+                extra_prompt = (
+                    f"请补充中国传统纹样「{predicted_name}」的：{'，'.join(parts)}，"
+                    '只输出JSON：{"history":"...","cross":"..."}，禁止Markdown。'
+                )
+                extra_resp = await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda: dashscope.Generation.call(
+                        model='qwen-turbo',
+                        messages=[{'role': 'user', 'content': extra_prompt}],
+                        result_format='message',
+                        max_tokens=500
+                    )),
+                    timeout=18
+                )
+                if extra_resp.status_code == 200:
+                    ex_raw = extra_resp.output.choices[0].message.content.strip()
+                    ex_data = robust_json_parse(ex_raw)
+                    if ex_data and isinstance(ex_data, dict):
+                        if need_h and ex_data.get("history") and len(ex_data["history"]) > 30:
+                            dynamic_details["zh"]["history"] = ex_data["history"]
+                            dynamic_details.setdefault("en", {})["history"] = ex_data["history"]
+                        if need_c and ex_data.get("cross") and len(ex_data["cross"]) > 20:
+                            dynamic_details["zh"]["cross"] = ex_data["cross"]
+                            dynamic_details.setdefault("en", {})["cross"] = ex_data["cross"]
+            except Exception:
+                pass
 
     # 补充多语言字段
     for lang_code in ["fr", "ja", "ko", "ar"]:
